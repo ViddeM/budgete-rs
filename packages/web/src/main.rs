@@ -53,21 +53,25 @@ fn AppLayout() -> Element {
         ui::Navbar {
             Link {
                 to: Route::Dashboard {},
+                active_class: "nav-active",
                 style: "color: #94a3b8; text-decoration: none; font-size: 0.9rem;",
                 "Dashboard"
             }
             Link {
                 to: Route::Upload {},
+                active_class: "nav-active",
                 style: "color: #94a3b8; text-decoration: none; font-size: 0.9rem;",
                 "Upload"
             }
             Link {
                 to: Route::Classify {},
+                active_class: "nav-active",
                 style: "color: #94a3b8; text-decoration: none; font-size: 0.9rem;",
                 "Classify"
             }
             Link {
                 to: Route::Analytics {},
+                active_class: "nav-active",
                 style: "color: #94a3b8; text-decoration: none; font-size: 0.9rem;",
                 "Analytics"
             }

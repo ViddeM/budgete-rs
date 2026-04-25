@@ -5,7 +5,7 @@ use api::{
 };
 use dioxus::prelude::*;
 use uuid::Uuid;
-use ui::TransactionQueueCard;
+use ui::{fmt_tx_amount, TransactionQueueCard};
 
 #[component]
 pub fn Classify() -> Element {
@@ -205,6 +205,7 @@ pub fn Classify() -> Element {
                                                     }
                                                     button {
                                                         onclick: move |_| { editing_id.set(None); edit_error.set(None); },
+                                                        class: "btn-ghost",
                                                         style: "padding: 5px 12px; background: transparent; color: #6b7280; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 0.8rem;",
                                                         "Cancel"
                                                     }
@@ -231,6 +232,7 @@ pub fn Classify() -> Element {
                                                         edit_color.set(parent_color.clone());
                                                         edit_error.set(None);
                                                     },
+                                                    class: "btn-ghost",
                                                     style: "padding: 3px 10px; background: transparent; color: #6b7280; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-size: 0.75rem;",
                                                     "Edit"
                                                 }
@@ -240,6 +242,7 @@ pub fn Classify() -> Element {
                                                         categories_res.restart();
                                                         queue_res.restart();
                                                     },
+                                                    class: "btn-danger",
                                                     style: "padding: 3px 10px; background: transparent; color: #dc2626; border: 1px solid #fecaca; border-radius: 6px; cursor: pointer; font-size: 0.75rem;",
                                                     "Delete"
                                                 }
@@ -288,6 +291,7 @@ pub fn Classify() -> Element {
                                                                     }
                                                                     button {
                                                                         onclick: move |_| { editing_id.set(None); edit_error.set(None); },
+                                                                        class: "btn-ghost",
                                                                         style: "padding: 5px 12px; background: transparent; color: #6b7280; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 0.78rem;",
                                                                         "Cancel"
                                                                     }
@@ -313,6 +317,7 @@ pub fn Classify() -> Element {
                                                                         edit_color.set(sub_color.clone());
                                                                         edit_error.set(None);
                                                                     },
+                                                                    class: "btn-ghost",
                                                                     style: "padding: 2px 8px; background: transparent; color: #6b7280; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-size: 0.72rem;",
                                                                     "Edit"
                                                                 }
@@ -322,6 +327,7 @@ pub fn Classify() -> Element {
                                                                         categories_res.restart();
                                                                         queue_res.restart();
                                                                     },
+                                                                    class: "btn-danger",
                                                                     style: "padding: 2px 8px; background: transparent; color: #dc2626; border: 1px solid #fecaca; border-radius: 6px; cursor: pointer; font-size: 0.72rem;",
                                                                     "Delete"
                                                                 }
@@ -365,6 +371,7 @@ pub fn Classify() -> Element {
                                                         }
                                                         button {
                                                             onclick: move |_| { adding_sub_for.set(None); sub_error.set(None); },
+                                                            class: "btn-ghost",
                                                             style: "padding: 5px 12px; background: transparent; color: #6b7280; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 0.78rem;",
                                                             "Cancel"
                                                         }
@@ -380,6 +387,7 @@ pub fn Classify() -> Element {
                                                         new_sub_name.set(String::new());
                                                         sub_error.set(None);
                                                     },
+                                                    class: "btn-ghost",
                                                     style: "background: transparent; border: none; color: #6b7280; font-size: 0.78rem; cursor: pointer; padding: 4px 0;",
                                                     "+ Add subcategory"
                                                 }
@@ -428,13 +436,12 @@ pub fn Classify() -> Element {
                                             style: "margin-top: 12px; display: flex; flex-direction: column; gap: 1px; opacity: 0.45; pointer-events: none; user-select: none;",
                                             for tx in state.upcoming.iter() {
                                                 {
-                                                    use rust_decimal::prelude::ToPrimitive;
+                                                    use rust_decimal::Decimal;
                                                     let date_str = tx.date
                                                         .map(|d| d.format("%Y-%m-%d").to_string())
                                                         .unwrap_or_else(|| "Pending".to_string());
-                                                    let amount_f = tx.amount.to_f64().unwrap_or(0.0);
-                                                    let amount_color = if amount_f >= 0.0 { "#16a34a" } else { "#dc2626" };
-                                                    let amount_str = format!("{:.2} {}", tx.amount, tx.currency);
+                                                    let amount_color = if tx.amount >= Decimal::ZERO { "#16a34a" } else { "#dc2626" };
+                                                    let amount_str = fmt_tx_amount(tx.amount, &tx.currency);
                                                     rsx! {
                                                         div {
                                                             key: "{tx.id}",

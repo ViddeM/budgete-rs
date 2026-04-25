@@ -6,7 +6,7 @@ use api::models::Group;
 use chrono::{Datelike, Local, NaiveDate};
 use dioxus::prelude::*;
 use rust_decimal::prelude::ToPrimitive;
-use ui::TransactionList;
+use ui::{fmt_amount, TransactionList};
 use uuid::Uuid;
 
 #[component]
@@ -122,8 +122,8 @@ pub fn Analytics() -> Element {
                                 key: "{row.period_label}",
                                 style: "display: grid; grid-template-columns: 1fr 1fr 1fr; font-size: 0.9rem; padding: 6px 0; border-bottom: 1px solid #f3f4f6;",
                                 span { style: "color: #111827;", "{row.period_label}" }
-                                span { style: "text-align: right; color: #dc2626; font-weight: 600;", "{row.expenses:.0} SEK" }
-                                span { style: "text-align: right; color: #16a34a; font-weight: 600;", "{row.income:.0} SEK" }
+                                span { style: "text-align: right; color: #dc2626; font-weight: 600;", "{fmt_amount(row.expenses)}" }
+                                span { style: "text-align: right; color: #16a34a; font-weight: 600;", "{fmt_amount(row.income)}" }
                             }
                         }
                     }
@@ -156,7 +156,7 @@ pub fn Analytics() -> Element {
                                             }
                                             "{cat.category_name}"
                                         }
-                                        span { style: "font-weight: 600; font-size: 0.9rem; color: #374151;", "{cat.total:.0} SEK" }
+                                        span { style: "font-weight: 600; font-size: 0.9rem; color: #374151;", "{fmt_amount(cat.total)}" }
                                     }
                                     // Proportional bar
                                     {
@@ -180,6 +180,7 @@ pub fn Analytics() -> Element {
             // --- Transaction drill-down toggle ---
             button {
                 onclick: move |_| show_transactions.set(!show_transactions()),
+                class: "btn-ghost",
                 style: "padding: 8px 16px; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; font-size: 0.85rem; margin-bottom: 16px;",
                 if show_transactions() { "Hide transactions" } else { "Show all transactions" }
             }

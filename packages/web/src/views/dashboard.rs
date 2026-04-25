@@ -1,7 +1,7 @@
 use api::{get_dashboard_stats, models::DashboardStats};
 use dioxus::prelude::*;
-use rust_decimal::prelude::ToPrimitive;
-use ui::StatCard;
+use rust_decimal::{prelude::ToPrimitive, Decimal};
+use ui::{fmt_amount, StatCard};
 
 #[component]
 pub fn Dashboard() -> Element {
@@ -21,6 +21,9 @@ fn DashboardContent(stats: DashboardStats) -> Element {
         format!("{sign}{p:.1}% vs last month")
     });
 
+    let balance = stats.month_income - stats.month_expenses;
+    let balance_color = if balance >= Decimal::ZERO { "#16a34a" } else { "#dc2626" };
+
     rsx! {
         div {
             style: "padding: 32px; font-family: sans-serif;",
@@ -31,13 +34,21 @@ fn DashboardContent(stats: DashboardStats) -> Element {
 
                 StatCard {
                     label: "Expenses this month".to_string(),
-                    value: format!("{:.0} SEK", stats.month_expenses),
+                    value: fmt_amount(stats.month_expenses),
                     sub_label: mom,
+                    value_color: "#dc2626".to_string(),
                 }
                 StatCard {
                     label: "Income this month".to_string(),
-                    value: format!("{:.0} SEK", stats.month_income),
+                    value: fmt_amount(stats.month_income),
                     sub_label: None,
+                    value_color: "#16a34a".to_string(),
+                }
+                StatCard {
+                    label: "Balance this month".to_string(),
+                    value: fmt_amount(balance),
+                    sub_label: None,
+                    value_color: balance_color.to_string(),
                 }
                 StatCard {
                     label: "Unprocessed".to_string(),
@@ -61,7 +72,7 @@ fn DashboardContent(stats: DashboardStats) -> Element {
                                 }
                                 span { style: "font-size: 0.9rem; color: #111827;", "{cat.category_name}" }
                             }
-                            span { style: "font-weight: 600; color: #374151;", "{cat.total:.0} SEK" }
+                            span { style: "font-weight: 600; color: #374151;", "{fmt_amount(cat.total)}" }
                         }
                     }
                 }

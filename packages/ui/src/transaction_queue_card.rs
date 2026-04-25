@@ -1,6 +1,7 @@
 use api::models::{Category, Transaction};
 use dioxus::prelude::*;
-use rust_decimal::prelude::ToPrimitive;
+
+use crate::format::fmt_tx_amount;
 
 /// A prominent card that presents a single transaction for classification.
 ///
@@ -14,9 +15,8 @@ pub fn TransactionQueueCard(
     on_classify: EventHandler<(Transaction, Category)>,
 ) -> Element {
     let amount = transaction.amount;
-    let amount_f = amount.to_f64().unwrap_or(0.0);
-    let amount_color = if amount_f >= 0.0 { "#16a34a" } else { "#dc2626" };
-    let amount_str = format!("{:.2} {}", amount, transaction.currency);
+    let amount_color = if amount >= rust_decimal::Decimal::ZERO { "#16a34a" } else { "#dc2626" };
+    let amount_str = fmt_tx_amount(amount, &transaction.currency);
 
     let date_str = transaction
         .date

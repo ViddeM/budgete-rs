@@ -29,3 +29,71 @@ input:focus, select:focus {
     border-color: #6366f1 !important;
     box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
 }
+
+/* ── Interactive element hover / active effects ──────────────────────── */
+
+button {
+    transition: filter 0.15s ease, transform 0.1s ease,
+                background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease,
+                box-shadow 0.15s ease;
+}
+
+/* Solid / primary buttons — lighten + lift */
+button:hover:not(:disabled):not(.btn-ghost):not(.btn-danger) {
+    filter: brightness(1.55);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
+}
+
+/* Ghost / outline buttons — fill background, darken border */
+.btn-ghost:hover:not(:disabled) {
+    background-color: #f1f5f9 !important;
+    border-color: #94a3b8 !important;
+    color: #111827 !important;
+}
+
+/* Danger / destructive buttons — light red fill, deepen border & text */
+.btn-danger:hover:not(:disabled) {
+    background-color: #fef2f2 !important;
+    border-color: #f87171 !important;
+    color: #b91c1c !important;
+}
+
+/* Press feedback for all buttons */
+button:active:not(:disabled) {
+    filter: brightness(0.88);
+    transform: translateY(1px);
+}
+
+select {
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+}
+
+select:hover:not(:focus) {
+    border-color: #9ca3af !important;
+}
+
+input[type="color"] {
+    transition: filter 0.15s ease;
+}
+
+input[type="color"]:hover {
+    filter: brightness(1.1);
+}
+
+/* ── Active nav link highlight ────────────────────────────────────────── */
+.nav-active {
+    color: #f1f5f9 !important;
+    font-weight: 700;
+    border-bottom: 2px solid #6366f1;
+    padding-bottom: 2px;
+}
+
+/* Hover effect for non-active nav links */
+nav a {
+    transition: color 0.15s ease;
+}
+
+nav a:hover:not(.nav-active) {
+    color: #cbd5e1 !important;
+}

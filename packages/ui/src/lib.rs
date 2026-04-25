@@ -4,6 +4,7 @@
 //! access here. The `web` crate is responsible for fetching data and passing
 //! it down.
 
+pub mod format;
 mod category_badge;
 mod group_badge;
 mod navbar;
@@ -13,6 +14,7 @@ mod transaction_queue_card;
 mod transaction_row;
 
 pub use category_badge::{CategoryBadge, UnprocessedBadge};
+pub use format::{fmt_amount, fmt_tx_amount};
 pub use group_badge::GroupBadge;
 pub use navbar::{NavLink, Navbar};
 pub use stat_card::StatCard;
