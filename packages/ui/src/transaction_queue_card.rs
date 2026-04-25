@@ -1,0 +1,110 @@
+use api::models::{Category, Transaction};
+use dioxus::prelude::*;
+use rust_decimal::prelude::ToPrimitive;
+
+/// A prominent card that presents a single transaction for classification.
+///
+/// Only subcategories (those with `parent_id.is_some()`) are shown as
+/// selectable buttons; top-level categories appear as non-clickable group
+/// headers. Parents that have no subcategories are omitted.
+#[component]
+pub fn TransactionQueueCard(
+    transaction: Transaction,
+    categories: Vec<Category>,
+    on_classify: EventHandler<(Transaction, Category)>,
+) -> Element {
+    let amount = transaction.amount;
+    let amount_f = amount.to_f64().unwrap_or(0.0);
+    let amount_color = if amount_f >= 0.0 { "#16a34a" } else { "#dc2626" };
+    let amount_str = format!("{:.2} {}", amount, transaction.currency);
+
+    let date_str = transaction
+        .date
+        .map(|d| d.format("%Y-%m-%d").to_string())
+        .unwrap_or_else(|| "Pending".to_string());
+
+    // Separate into top-level and subcategories.
+    let parents: Vec<&Category> =
+        categories.iter().filter(|c| c.parent_id.is_none()).collect();
+    let has_any_subcats = categories.iter().any(|c| c.parent_id.is_some());
+
+    rsx! {
+        div {
+            style: "background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 28px 32px; max-width: 560px;",
+
+            // Meta line: date · source
+            p {
+                style: "font-size: 0.78rem; color: #9ca3af; margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.05em;",
+                "{date_str} · {transaction.source}"
+            }
+
+            // Description
+            p {
+                style: "font-size: 1.25rem; font-weight: 600; color: #111827; margin: 0 0 10px; line-height: 1.4;",
+                "{transaction.description}"
+            }
+
+            // Amount
+            p {
+                style: "font-size: 2rem; font-weight: 700; color: {amount_color}; margin: 0 0 28px;",
+                "{amount_str}"
+            }
+
+            // Category picker — subcategories only, grouped under parents
+            if !has_any_subcats {
+                p {
+                    style: "font-size: 0.85rem; color: #9ca3af;",
+                    "Add subcategories to begin classifying."
+                }
+            } else {
+                p {
+                    style: "font-size: 0.75rem; font-weight: 700; color: #6b7280; margin: 0 0 12px; text-transform: uppercase; letter-spacing: 0.05em;",
+                    "Assign category"
+                }
+                div {
+                    style: "display: flex; flex-direction: column; gap: 12px;",
+                    for parent in parents.iter() {
+                        // Collect subcategories for this parent (inline, no HashMap needed)
+                        {
+                            let parent_id = parent.id;
+                            let subcats: Vec<&Category> = categories
+                                .iter()
+                                .filter(|c| c.parent_id == Some(parent_id))
+                                .collect();
+                            if subcats.is_empty() {
+                                rsx! {}
+                            } else {
+                                rsx! {
+                                    div {
+                                        // Parent label
+                                        p {
+                                            style: "font-size: 0.72rem; font-weight: 700; color: #9ca3af; margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.05em;",
+                                            "{parent.name}"
+                                        }
+                                        // Subcategory buttons
+                                        div {
+                                            style: "display: flex; flex-wrap: wrap; gap: 8px;",
+                                            for sub in subcats.iter() {
+                                                button {
+                                                    key: "{sub.id}",
+                                                    style: "background: {sub.color}; color: #fff; border: none; padding: 8px 20px; border-radius: 999px; font-size: 0.9rem; font-weight: 600; cursor: pointer;",
+                                                    onclick: {
+                                                        let tx = transaction.clone();
+                                                        let sub = (*sub).clone();
+                                                        let handler = on_classify.clone();
+                                                        move |_| handler.call((tx.clone(), sub.clone()))
+                                                    },
+                                                    "{sub.name}"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
