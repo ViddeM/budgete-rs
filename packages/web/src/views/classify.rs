@@ -1,16 +1,21 @@
-use api::models::Category;
+use api::models::{Category, Transaction, TransactionFilter};
 use api::{
-    classify_transaction, create_category, delete_category, get_queue_state, list_categories,
-    update_category,
+    classify_transaction, create_category, delete_category, get_queue_state, get_transactions,
+    list_categories, update_category,
 };
 use dioxus::prelude::*;
 use uuid::Uuid;
-use ui::{fmt_tx_amount, TransactionQueueCard};
+use ui::{fmt_tx_amount, ClassifyAction, TransactionList, TransactionQueueCard};
 
 #[component]
 pub fn Classify() -> Element {
     let mut categories_res = use_resource(list_categories);
     let mut queue_res = use_resource(get_queue_state);
+    let mut classified_res = use_resource(|| async {
+        get_transactions(TransactionFilter::default()).await
+    });
+
+    let mut show_classified = use_signal(|| false);
 
     // ── Inline-edit state ─────────────────────────────────────────────────
     // Shared edit form (one at a time for both top-level and subcategories).
@@ -94,6 +99,13 @@ pub fn Classify() -> Element {
     let on_classify = move |(tx, cat): (api::models::Transaction, Category)| async move {
         let _ = classify_transaction(tx.id, Some(cat.id)).await;
         queue_res.restart();
+        classified_res.restart();
+    };
+
+    let on_reclassify = move |(tx, cat): (Transaction, Option<Category>)| async move {
+        let _ = classify_transaction(tx.id, cat.map(|c| c.id)).await;
+        queue_res.restart();
+        classified_res.restart();
     };
 
     // ── Derived data ───────────────────────────────────────────────────────
@@ -104,6 +116,14 @@ pub fn Classify() -> Element {
 
     let top_level: Vec<Category> =
         categories.iter().filter(|c| c.parent_id.is_none()).cloned().collect();
+
+    let classified_txs: Vec<Transaction> = classified_res()
+        .and_then(|r| r.ok())
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|tx| !tx.is_pending && tx.category.is_some())
+        .collect();
+    let classified_count = classified_txs.len();
 
     rsx! {
         div {
@@ -402,7 +422,7 @@ pub fn Classify() -> Element {
 
                 // ── Right column: classify queue ───────────────────────────
                 div {
-                    style: "flex: 1;",
+                    style: "flex: 1; min-width: 0;",
 
                     match queue_res() {
                         None => rsx! { p { "Loading…" } },
@@ -466,6 +486,39 @@ pub fn Classify() -> Element {
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+
+                // ── Classified transactions ────────────────────────────────
+                div {
+                    style: "margin-top: 32px;",
+
+                    div {
+                        style: "display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;",
+                        h2 {
+                            style: "margin: 0; font-size: 1rem; color: #374151; font-weight: 700;",
+                            "Classified"
+                        }
+                        button {
+                            onclick: move |_| show_classified.set(!show_classified()),
+                            class: "btn-ghost",
+                            style: "padding: 4px 12px; background: transparent; color: #6b7280; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; font-size: 0.8rem;",
+                            if show_classified() {
+                                "Hide"
+                            } else {
+                                "Show ({classified_count})"
+                            }
+                        }
+                    }
+
+                    if show_classified() {
+                        TransactionList {
+                            transactions: classified_txs,
+                            classify_action: Some(ClassifyAction {
+                                categories: categories.clone(),
+                                on_classify: EventHandler::new(on_reclassify),
+                            }),
                         }
                     }
                 }

@@ -33,9 +33,8 @@ pub struct Transaction {
     pub source: String,
     pub currency: String,
     pub is_pending: bool,
-    pub category_id: Option<Uuid>,
-    pub category_name: Option<String>,
-    pub category_color: Option<String>,
+    /// `None` when the transaction has not yet been classified.
+    pub category: Option<Category>,
 }
 
 // ---------------------------------------------------------------------------

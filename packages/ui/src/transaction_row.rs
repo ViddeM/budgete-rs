@@ -4,11 +4,12 @@ use dioxus::prelude::*;
 use crate::category_badge::{CategoryBadge, UnprocessedBadge};
 use crate::format::fmt_tx_amount;
 
-/// Props for an optional classify action rendered inside the row.
+/// Props for an optional classify / reclassify action rendered inside the row.
+/// Pass `None` as the category to remove the classification.
 #[derive(Clone, PartialEq)]
 pub struct ClassifyAction {
     pub categories: Vec<Category>,
-    pub on_classify: EventHandler<(Transaction, Category)>,
+    pub on_classify: EventHandler<(Transaction, Option<Category>)>,
 }
 
 /// A single transaction row.
@@ -26,51 +27,49 @@ pub fn TransactionRow(
         .map(|d| d.format("%Y-%m-%d").to_string())
         .unwrap_or_else(|| "Pending".to_string());
 
-    let cat = transaction
-        .category_id
-        .zip(transaction.category_name.clone())
-        .zip(transaction.category_color.clone())
-        .map(|((id, name), color)| Category { id, name, color, parent_id: None });
+    let cat = transaction.category.clone();
 
     rsx! {
         div {
-            style: "display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f3f4f6;",
+            style: "display: grid; grid-template-columns: 90px 1fr 72px 150px 100px; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid #f3f4f6;",
 
             // Date
             span {
-                style: "min-width: 90px; font-size: 0.8rem; color: #6b7280;",
+                style: "font-size: 0.8rem; color: #6b7280; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
                 "{date_str}"
             }
 
             // Description
             span {
-                style: "flex: 1; font-size: 0.9rem; color: #111827; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+                style: "font-size: 0.9rem; color: #111827; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
                 "{transaction.description}"
             }
 
             // Source badge
             span {
-                style: "font-size: 0.7rem; color: #9ca3af; text-transform: uppercase;",
+                style: "font-size: 0.7rem; color: #9ca3af; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
                 "{transaction.source}"
             }
 
             // Category badge / classify dropdown
             if let Some(ref action) = classify_action {
-                // Show a select for classification
+                // Show a select for classification / reclassification
                 select {
-                    style: "font-size: 0.8rem; border: 1px solid #d1d5db; border-radius: 6px; padding: 2px 6px; color: #374151;",
+                    style: "width: 100%; font-size: 0.8rem; border: 1px solid #d1d5db; border-radius: 6px; padding: 2px 4px; color: #374151; box-sizing: border-box;",
                     onchange: {
                         let tx = transaction.clone();
                         let cats = action.categories.clone();
                         let handler = action.on_classify.clone();
                         move |evt: Event<FormData>| {
                             let val = evt.value();
-                            if let Some(cat) = cats.iter().find(|c| c.id.to_string() == val) {
-                                handler.call((tx.clone(), cat.clone()));
+                            if val.is_empty() {
+                                handler.call((tx.clone(), None));
+                            } else if let Some(cat) = cats.iter().find(|c| c.id.to_string() == val) {
+                                handler.call((tx.clone(), Some(cat.clone())));
                             }
                         }
                     },
-                    option { value: "", disabled: true, selected: cat.is_none(), "— assign —" }
+                    option { value: "", selected: cat.is_none(), "— unclassify —" }
                     for c in action.categories.iter() {
                         option {
                             value: "{c.id}",
@@ -90,7 +89,7 @@ pub fn TransactionRow(
 
             // Amount
             span {
-                style: "min-width: 90px; text-align: right; font-weight: 600; font-size: 0.9rem; color: {amount_color};",
+                style: "text-align: right; font-weight: 600; font-size: 0.9rem; color: {amount_color};",
                 "{amount_str}"
             }
         }

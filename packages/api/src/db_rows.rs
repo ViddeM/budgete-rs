@@ -49,11 +49,18 @@ pub(crate) struct TransactionRow {
     pub category_id: Option<uuid::Uuid>,
     pub category_name: Option<String>,
     pub category_color: Option<String>,
+    pub category_parent_id: Option<uuid::Uuid>,
 }
 
 #[cfg(feature = "server")]
 impl From<TransactionRow> for Transaction {
     fn from(r: TransactionRow) -> Self {
+        let category = r.category_id.map(|id| crate::models::Category {
+            id,
+            name: r.category_name.unwrap_or_default(),
+            color: r.category_color.unwrap_or_default(),
+            parent_id: r.category_parent_id,
+        });
         Transaction {
             id: r.id,
             date: r.date,
@@ -62,9 +69,7 @@ impl From<TransactionRow> for Transaction {
             source: r.source,
             currency: r.currency,
             is_pending: r.is_pending,
-            category_id: r.category_id,
-            category_name: r.category_name,
-            category_color: r.category_color,
+            category,
         }
     }
 }
