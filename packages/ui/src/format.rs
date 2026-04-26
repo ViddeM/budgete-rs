@@ -44,3 +44,35 @@ pub fn fmt_tx_amount(d: Decimal, currency: &str) -> String {
     let sign = if negative { "-" } else { "" };
     format!("{sign}{formatted_int}.{frac:02} {currency}")
 }
+
+/// Parse perceived luminance (0–255) from a CSS hex color string (`#rrggbb`).
+/// Returns `None` if the string can't be parsed.
+fn perceived_luminance(hex: &str) -> Option<f32> {
+    let hex = hex.trim_start_matches('#');
+    if hex.len() < 6 {
+        return None;
+    }
+    let r = u8::from_str_radix(&hex[0..2], 16).ok()? as f32;
+    let g = u8::from_str_radix(&hex[2..4], 16).ok()? as f32;
+    let b = u8::from_str_radix(&hex[4..6], 16).ok()? as f32;
+    // Standard perceptual luminance coefficients (Rec. 601).
+    Some(0.299 * r + 0.587 * g + 0.114 * b)
+}
+
+/// Returns a CSS color value suitable for text rendered on top of `hex`.
+/// Dark text for bright backgrounds, white for dark ones.
+pub fn contrast_text(hex: &str) -> &'static str {
+    match perceived_luminance(hex) {
+        Some(l) if l > 155.0 => "#111827",
+        _ => "#ffffff",
+    }
+}
+
+/// Returns a CSS `filter` value for a subtle hover highlight that looks right
+/// regardless of whether the background is light or dark.
+pub fn hover_filter(hex: &str) -> &'static str {
+    match perceived_luminance(hex) {
+        Some(l) if l > 155.0 => "brightness(0.88)",
+        _ => "brightness(1.18)",
+    }
+}

@@ -1,7 +1,7 @@
 use api::models::{Category, Transaction};
 use dioxus::prelude::*;
 
-use crate::format::fmt_tx_amount;
+use crate::format::{contrast_text, fmt_tx_amount, hover_filter};
 
 /// A prominent card that presents a single transaction for classification.
 ///
@@ -64,7 +64,6 @@ pub fn TransactionQueueCard(
                 div {
                     style: "display: flex; flex-direction: column; gap: 12px;",
                     for parent in parents.iter() {
-                        // Collect subcategories for this parent (inline, no HashMap needed)
                         {
                             let parent_id = parent.id;
                             let subcats: Vec<&Category> = categories
@@ -85,16 +84,11 @@ pub fn TransactionQueueCard(
                                         div {
                                             style: "display: flex; flex-wrap: wrap; gap: 8px;",
                                             for sub in subcats.iter() {
-                                                button {
+                                                CategoryButton {
                                                     key: "{sub.id}",
-                                                    style: "background: {sub.color}; color: #fff; border: none; padding: 8px 20px; border-radius: 999px; font-size: 0.9rem; font-weight: 600; cursor: pointer;",
-                                                    onclick: {
-                                                        let tx = transaction.clone();
-                                                        let sub = (*sub).clone();
-                                                        let handler = on_classify.clone();
-                                                        move |_| handler.call((tx.clone(), sub.clone()))
-                                                    },
-                                                    "{sub.name}"
+                                                    category: (*sub).clone(),
+                                                    transaction: transaction.clone(),
+                                                    on_classify: on_classify.clone(),
                                                 }
                                             }
                                         }
@@ -105,6 +99,31 @@ pub fn TransactionQueueCard(
                     }
                 }
             }
+        }
+    }
+}
+
+/// A single subcategory button with adaptive text color and hover effect.
+#[component]
+fn CategoryButton(
+    category: Category,
+    transaction: Transaction,
+    on_classify: EventHandler<(Transaction, Category)>,
+) -> Element {
+    let mut hovered = use_signal(|| false);
+    let text_color = contrast_text(&category.color);
+    let filter = if hovered() { hover_filter(&category.color) } else { "none" };
+    rsx! {
+        button {
+            style: "background: {category.color}; color: {text_color}; border: none; padding: 8px 20px; border-radius: 999px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: filter 0.15s ease; filter: {filter};",
+            onmouseenter: move |_| hovered.set(true),
+            onmouseleave: move |_| hovered.set(false),
+            onclick: {
+                let tx = transaction.clone();
+                let cat = category.clone();
+                move |_| on_classify.call((tx.clone(), cat.clone()))
+            },
+            "{category.name}"
         }
     }
 }

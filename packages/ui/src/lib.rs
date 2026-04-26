@@ -14,7 +14,7 @@ mod transaction_queue_card;
 mod transaction_row;
 
 pub use category_badge::{CategoryBadge, UnprocessedBadge};
-pub use format::{fmt_amount, fmt_tx_amount};
+pub use format::{contrast_text, fmt_amount, fmt_tx_amount, hover_filter};
 pub use group_badge::GroupBadge;
 pub use navbar::{NavLink, Navbar};
 pub use stat_card::StatCard;
