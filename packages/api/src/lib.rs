@@ -19,6 +19,7 @@ pub mod server_fns;
 
 // Re-export commonly used server function types at crate root for convenience.
 pub use models::*;
+pub use server_fns::analytics::*;
 pub use server_fns::categories::*;
 pub use server_fns::dashboard::*;
 pub use server_fns::groups::*;

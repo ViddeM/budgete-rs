@@ -1,27 +1,23 @@
-use api::models::{Category, Transaction, TransactionFilter};
+use api::models::Category;
 use api::{
-    classify_transaction, create_category, delete_category, get_queue_state, get_transactions,
-    list_categories, update_category,
+    classify_transaction, create_category, delete_category, get_queue_state, list_categories,
+    update_category,
 };
 use dioxus::prelude::*;
 use uuid::Uuid;
-use ui::{fmt_tx_amount, ClassifyAction, TransactionList, TransactionQueueCard};
+use ui::{fmt_tx_amount, TransactionQueueCard};
 
 #[component]
 pub fn Classify() -> Element {
     let mut categories_res = use_resource(list_categories);
     let mut queue_res = use_resource(get_queue_state);
-    let mut classified_res = use_resource(|| async {
-        get_transactions(TransactionFilter::default()).await
-    });
-
-    let mut show_classified = use_signal(|| false);
 
     // ── Inline-edit state ─────────────────────────────────────────────────
     // Shared edit form (one at a time for both top-level and subcategories).
     let mut editing_id: Signal<Option<Uuid>> = use_signal(|| None);
     let mut edit_name = use_signal(String::new);
     let mut edit_color = use_signal(|| "#6366f1".to_string());
+    let mut editing_is_top_level = use_signal(|| false);
     let mut edit_error: Signal<Option<String>> = use_signal(|| None);
 
     // Which parent is showing its "add subcategory" form.
@@ -32,7 +28,6 @@ pub fn Classify() -> Element {
 
     // ── New top-level category form ────────────────────────────────────────
     let mut new_cat_name = use_signal(String::new);
-    let mut new_cat_color = use_signal(|| "#6366f1".to_string());
     let mut cat_error: Signal<Option<String>> = use_signal(|| None);
 
     // ── Event handlers ─────────────────────────────────────────────────────
@@ -44,7 +39,7 @@ pub fn Classify() -> Element {
             cat_error.set(Some("Name cannot be empty".to_string()));
             return;
         }
-        match create_category(name, new_cat_color(), None).await {
+        match create_category(name, String::new(), None).await {
             Ok(_) => {
                 new_cat_name.set(String::new());
                 categories_res.restart();
@@ -63,7 +58,8 @@ pub fn Classify() -> Element {
             edit_error.set(Some("Name cannot be empty".to_string()));
             return;
         }
-        match update_category(id, name, edit_color()).await {
+        let color = if editing_is_top_level() { String::new() } else { edit_color() };
+        match update_category(id, name, color).await {
             Ok(_) => {
                 editing_id.set(None);
                 edit_error.set(None);
@@ -99,13 +95,6 @@ pub fn Classify() -> Element {
     let on_classify = move |(tx, cat): (api::models::Transaction, Category)| async move {
         let _ = classify_transaction(tx.id, Some(cat.id)).await;
         queue_res.restart();
-        classified_res.restart();
-    };
-
-    let on_reclassify = move |(tx, cat): (Transaction, Option<Category>)| async move {
-        let _ = classify_transaction(tx.id, cat.map(|c| c.id)).await;
-        queue_res.restart();
-        classified_res.restart();
     };
 
     // ── Derived data ───────────────────────────────────────────────────────
@@ -116,14 +105,6 @@ pub fn Classify() -> Element {
 
     let top_level: Vec<Category> =
         categories.iter().filter(|c| c.parent_id.is_none()).cloned().collect();
-
-    let classified_txs: Vec<Transaction> = classified_res()
-        .and_then(|r| r.ok())
-        .unwrap_or_default()
-        .into_iter()
-        .filter(|tx| !tx.is_pending && tx.category.is_some())
-        .collect();
-    let classified_count = classified_txs.len();
 
     rsx! {
         div {
@@ -154,12 +135,6 @@ pub fn Classify() -> Element {
                                     placeholder: "e.g. Food",
                                     style: "width: 100%; padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.9rem; box-sizing: border-box;",
                                 }
-                            }
-                            input {
-                                r#type: "color",
-                                value: new_cat_color(),
-                                oninput: move |e| new_cat_color.set(e.value()),
-                                 style: "width: 36px; height: 36px; padding: 2px; border: 1px solid #d1d5db; border-radius: 8px; cursor: pointer; flex-shrink: 0; appearance: none; -webkit-appearance: none;",
                             }
                             button {
                                 onclick: create_cat,
@@ -199,7 +174,7 @@ pub fn Classify() -> Element {
                                             // Inline edit form
                                             div {
                                                 style: "padding: 10px 12px; background: #f9fafb; border-bottom: 1px solid #e5e7eb;",
-                                                // Row 1: text input + color
+                                                // Row 1: text input (no color for top-level categories)
                                                 div {
                                                     style: "display: flex; gap: 8px; align-items: center;",
                                                     input {
@@ -207,12 +182,6 @@ pub fn Classify() -> Element {
                                                         value: edit_name(),
                                                         oninput: move |e| edit_name.set(e.value()),
                                                         style: "flex: 1; min-width: 0; padding: 5px 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.85rem; box-sizing: border-box;",
-                                                    }
-                                                    input {
-                                                        r#type: "color",
-                                                        value: edit_color(),
-                                                        oninput: move |e| edit_color.set(e.value()),
-                                                        style: "width: 32px; height: 32px; flex-shrink: 0; padding: 2px; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; appearance: none; -webkit-appearance: none;",
                                                     }
                                                 }
                                                 // Row 2: action buttons
@@ -239,17 +208,15 @@ pub fn Classify() -> Element {
                                             div {
                                                 style: "display: flex; align-items: center; gap: 8px; padding: 10px 12px;",
                                                 span {
-                                                    style: "width: 12px; height: 12px; border-radius: 50%; background: {parent_color}; flex-shrink: 0;",
-                                                }
-                                                span {
                                                     style: "flex: 1; font-size: 0.9rem; font-weight: 600; color: #111827;",
                                                     "{parent_name}"
                                                 }
                                                 button {
-                                                    onclick: move |_| {
+                                                     onclick: move |_| {
                                                         editing_id.set(Some(parent_id));
                                                         edit_name.set(parent_name.clone());
                                                         edit_color.set(parent_color.clone());
+                                                        editing_is_top_level.set(true);
                                                         edit_error.set(None);
                                                     },
                                                     class: "btn-ghost",
@@ -335,6 +302,7 @@ pub fn Classify() -> Element {
                                                                         editing_id.set(Some(sub_id));
                                                                         edit_name.set(sub_name.clone());
                                                                         edit_color.set(sub_color.clone());
+                                                                        editing_is_top_level.set(false);
                                                                         edit_error.set(None);
                                                                     },
                                                                     class: "btn-ghost",
@@ -450,7 +418,7 @@ pub fn Classify() -> Element {
                                             on_classify: EventHandler::new(on_classify),
                                         }
                                     }
-                                    // ── Upcoming preview ──────────────────
+                // ── Upcoming preview ──────────────────
                                     if !state.upcoming.is_empty() {
                                         div {
                                             style: "margin-top: 12px; display: flex; flex-direction: column; gap: 1px; opacity: 0.45; pointer-events: none; user-select: none;",
@@ -486,39 +454,6 @@ pub fn Classify() -> Element {
                                     }
                                 }
                             }
-                        }
-                    }
-                }
-
-                // ── Classified transactions ────────────────────────────────
-                div {
-                    style: "margin-top: 32px;",
-
-                    div {
-                        style: "display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;",
-                        h2 {
-                            style: "margin: 0; font-size: 1rem; color: #374151; font-weight: 700;",
-                            "Classified"
-                        }
-                        button {
-                            onclick: move |_| show_classified.set(!show_classified()),
-                            class: "btn-ghost",
-                            style: "padding: 4px 12px; background: transparent; color: #6b7280; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; font-size: 0.8rem;",
-                            if show_classified() {
-                                "Hide"
-                            } else {
-                                "Show ({classified_count})"
-                            }
-                        }
-                    }
-
-                    if show_classified() {
-                        TransactionList {
-                            transactions: classified_txs,
-                            classify_action: Some(ClassifyAction {
-                                categories: categories.clone(),
-                                on_classify: EventHandler::new(on_reclassify),
-                            }),
                         }
                     }
                 }

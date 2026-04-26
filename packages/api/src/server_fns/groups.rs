@@ -35,6 +35,24 @@ pub async fn create_group(name: String, description: String) -> Result<Group, Se
     Ok(row.into())
 }
 
+/// Delete a project and remove all its transaction assignments.
+#[server]
+pub async fn delete_group(group_id: Uuid) -> Result<(), ServerFnError> {
+    let db = pool();
+    // Remove junction rows first (FK may not have CASCADE configured).
+    sqlx::query("DELETE FROM transaction_groups WHERE group_id = $1")
+        .bind(group_id)
+        .execute(db)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    sqlx::query("DELETE FROM groups WHERE id = $1")
+        .bind(group_id)
+        .execute(db)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    Ok(())
+}
+
 /// Tag a transaction as belonging to a group.
 #[server]
 pub async fn add_to_group(tx_id: Uuid, group_id: Uuid) -> Result<(), ServerFnError> {

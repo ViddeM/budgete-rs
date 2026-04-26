@@ -29,13 +29,15 @@ pub fn Analytics() -> Element {
     let category_spend_res = use_resource(move || {
         let from = parsed_from().unwrap_or(default_from);
         let to = parsed_to().unwrap_or(today);
-        async move { get_spending_by_category(from, to).await }
+        let gid = selected_group();
+        async move { get_spending_by_category(from, to, gid).await }
     });
 
     let over_time_res = use_resource(move || {
         let from = parsed_from().unwrap_or(default_from);
         let to = parsed_to().unwrap_or(today);
-        async move { get_spending_over_time(from, to).await }
+        let gid = selected_group();
+        async move { get_spending_over_time(from, to, gid).await }
     });
 
     let transactions_res = use_resource(move || {
@@ -82,7 +84,7 @@ pub fn Analytics() -> Element {
                 }
                 if !groups.is_empty() {
                     div {
-                        label { style: "display: block; font-size: 0.8rem; color: #6b7280; margin-bottom: 4px;", "Group" }
+                        label { style: "display: block; font-size: 0.8rem; color: #6b7280; margin-bottom: 4px;", "Project" }
                         select {
                             style: "padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.9rem;",
                             onchange: move |e: Event<FormData>| {
@@ -90,7 +92,7 @@ pub fn Analytics() -> Element {
                                     Uuid::parse_str(&e.value()).ok()
                                 );
                             },
-                            option { value: "", "All groups" }
+                            option { value: "", "All projects" }
                             for g in groups.iter() {
                                 option { value: "{g.id}", "{g.name}" }
                             }

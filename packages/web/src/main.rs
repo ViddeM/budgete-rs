@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use views::{Analytics, Classify, Dashboard, Upload};
+use views::{Analytics, Classify, Dashboard, Projects, Transactions, Upload};
 
 mod views;
 
@@ -13,6 +13,10 @@ enum Route {
         Upload {},
         #[route("/classify")]
         Classify {},
+        #[route("/transactions")]
+        Transactions {},
+        #[route("/projects")]
+        Projects {},
         #[route("/analytics")]
         Analytics {},
 }
@@ -68,6 +72,18 @@ fn AppLayout() -> Element {
                 active_class: "nav-active",
                 style: "color: #94a3b8; text-decoration: none; font-size: 0.9rem;",
                 "Classify"
+            }
+            Link {
+                to: Route::Transactions {},
+                active_class: "nav-active",
+                style: "color: #94a3b8; text-decoration: none; font-size: 0.9rem;",
+                "Transactions"
+            }
+            Link {
+                to: Route::Projects {},
+                active_class: "nav-active",
+                style: "color: #94a3b8; text-decoration: none; font-size: 0.9rem;",
+                "Projects"
             }
             Link {
                 to: Route::Analytics {},
