@@ -15,6 +15,10 @@ sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "chrono", "uu
 tokio = { version = "1", features = ["full"], optional = true }
 sha2 = { version = "0.10", optional = true }
 dotenvy = { version = "0.15", optional = true }
+reqwest = { version = "0.12", features = ["json"], optional = true }
+axum = { version = "0.8", optional = true }
+serde_json = { version = "1", optional = true }
+tracing = { version = "0.1", optional = true }
 
 [features]
-server = ["dioxus/server", "dep:sqlx", "dep:tokio", "dep:sha2", "dep:dotenvy"]
+server = ["dioxus/server", "dep:sqlx", "dep:tokio", "dep:sha2", "dep:dotenvy", "dep:reqwest", "dep:axum", "dep:serde_json", "dep:tracing"]

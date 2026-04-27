@@ -85,6 +85,12 @@ cd packages/web && dx serve --features web,server
 
 Set `DATABASE_URL=postgres://budgete:budgete@localhost:5432/budgete` (see `.env.example`).
 
+## Environment variables
+
+All environment variables the application reads at runtime must have a corresponding entry in `.env.example` with a placeholder value and a short comment explaining what it is.
+
+**Rule**: when adding or removing an environment variable, update `.env.example` — but never `.env` (it contains real secrets and is git-ignored).
+
 ---
 
 

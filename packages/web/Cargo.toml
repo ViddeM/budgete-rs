@@ -12,7 +12,9 @@ chrono = { workspace = true }
 uuid = { workspace = true }
 rust_decimal = { workspace = true }
 
+axum = { version = "0.8", optional = true }
+
 [features]
 default = []
 web = ["dioxus/web"]
-server = ["dioxus/server", "ui/server", "api/server"]
+server = ["dioxus/server", "ui/server", "api/server", "dep:axum"]

@@ -3,6 +3,7 @@ use dioxus::prelude::*;
 
 #[cfg(feature = "server")]
 use {
+    crate::auth::session::current_user_id,
     crate::db::pool,
     crate::db_rows::{CategorySpendRow, CountRow, PrevTotalsRow, TotalsRow},
     crate::models::CategorySpend,
@@ -10,9 +11,11 @@ use {
     rust_decimal::Decimal,
 };
 
-/// Compute dashboard statistics for the current calendar month.
+/// Compute dashboard statistics for the current calendar month, scoped to the
+/// current user.
 #[server]
 pub async fn get_dashboard_stats() -> Result<DashboardStats, ServerFnError> {
+    let user_id = current_user_id().await?;
     let db = pool();
 
     let today = chrono::Local::now().date_naive();
@@ -33,9 +36,10 @@ pub async fn get_dashboard_stats() -> Result<DashboardStats, ServerFnError> {
             COALESCE(SUM(amount) FILTER (WHERE amount < 0), 0) AS expenses,
             COALESCE(SUM(amount) FILTER (WHERE amount > 0), 0) AS income
         FROM transactions
-        WHERE date >= $1 AND is_pending = false
+        WHERE user_id = $1 AND date >= $2 AND is_pending = false
         "#,
     )
+    .bind(user_id)
     .bind(month_start)
     .fetch_one(db)
     .await
@@ -47,9 +51,10 @@ pub async fn get_dashboard_stats() -> Result<DashboardStats, ServerFnError> {
         SELECT
             COALESCE(SUM(amount) FILTER (WHERE amount < 0), 0) AS expenses
         FROM transactions
-        WHERE date >= $1 AND date < $2 AND is_pending = false
+        WHERE user_id = $1 AND date >= $2 AND date < $3 AND is_pending = false
         "#,
     )
+    .bind(user_id)
     .bind(prev_month_start)
     .bind(month_start)
     .fetch_one(db)
@@ -58,8 +63,10 @@ pub async fn get_dashboard_stats() -> Result<DashboardStats, ServerFnError> {
 
     // Unprocessed count
     let unprocessed: CountRow = sqlx::query_as(
-        "SELECT COUNT(*) AS count FROM transactions WHERE category_id IS NULL AND is_pending = false",
+        "SELECT COUNT(*) AS count FROM transactions \
+         WHERE user_id = $1 AND category_id IS NULL AND is_pending = false",
     )
+    .bind(user_id)
     .fetch_one(db)
     .await
     .map_err(|e| ServerFnError::new(e.to_string()))?;
@@ -74,12 +81,13 @@ pub async fn get_dashboard_stats() -> Result<DashboardStats, ServerFnError> {
             ABS(SUM(t.amount)) AS total
         FROM transactions t
         JOIN categories c ON c.id = t.category_id
-        WHERE t.date >= $1 AND t.amount < 0 AND t.is_pending = false
+        WHERE t.user_id = $1 AND t.date >= $2 AND t.amount < 0 AND t.is_pending = false
         GROUP BY c.id, c.name, c.color
         ORDER BY total DESC
         LIMIT 5
         "#,
     )
+    .bind(user_id)
     .bind(month_start)
     .fetch_all(db)
     .await
@@ -113,4 +121,3 @@ pub async fn get_dashboard_stats() -> Result<DashboardStats, ServerFnError> {
         mom_delta_pct,
     })
 }
-

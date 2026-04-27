@@ -1,11 +1,15 @@
 use dioxus::prelude::*;
-use views::{Analytics, Classify, Dashboard, Projects, Transactions, Upload};
+use views::{Analytics, Classify, Dashboard, Login, Projects, Transactions, Upload};
 
 mod views;
 
 #[derive(Debug, Clone, Routable, PartialEq)]
 #[rustfmt::skip]
 enum Route {
+    // Login lives outside the app shell — no navbar, no layout.
+    #[route("/login")]
+    Login {},
+
     #[layout(AppLayout)]
         #[route("/")]
         Dashboard {},
@@ -34,7 +38,20 @@ fn main() {
         api::db::init_pool()
             .await
             .expect("failed to initialise DB pool");
-        Ok(dioxus::server::router(App))
+
+        use axum::{middleware, routing::get};
+        use api::auth::{handlers, middleware::require_auth};
+
+        let router = dioxus::server::router(App)
+            // OAuth flow — handled entirely by axum, outside Dioxus routing.
+            .route("/api/auth/login",    get(handlers::login_handler))
+            .route("/api/auth/callback", get(handlers::callback_handler))
+            .route("/api/auth/logout",   get(handlers::logout_handler))
+            // Enforce authentication on every request (see middleware for
+            // the list of public paths that are always allowed through).
+            .layer(middleware::from_fn(require_auth));
+
+        Ok(router)
     });
 
     // On the client (wasm32) the server block above is compiled out.
@@ -90,6 +107,11 @@ fn AppLayout() -> Element {
                 active_class: "nav-active",
                 style: "color: #94a3b8; text-decoration: none; font-size: 0.9rem;",
                 "Analytics"
+            }
+            a {
+                href: "/api/auth/logout",
+                style: "color: #94a3b8; text-decoration: none; font-size: 0.9rem; margin-left: auto;",
+                "Log out"
             }
         }
         Outlet::<Route> {}

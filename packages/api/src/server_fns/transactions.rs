@@ -3,6 +3,7 @@ use dioxus::prelude::*;
 
 #[cfg(feature = "server")]
 use {
+    crate::auth::session::current_user_id,
     crate::csv,
     crate::db::pool,
     crate::db_rows::TransactionRow,
@@ -10,9 +11,12 @@ use {
     std::fmt::Write as _,
 };
 
-/// Import a CSV file. Returns counts of imported / skipped / pending rows.
+/// Import a CSV file for the current user. Returns counts of imported /
+/// skipped / pending rows.
 #[server]
 pub async fn import_csv(source: CsvSource, content: String) -> Result<ImportResult, ServerFnError> {
+    let user_id = current_user_id().await?;
+
     let rows = match source {
         CsvSource::Amex => csv::amex::parse(&content),
         CsvSource::Nordea => csv::nordea::parse(&content),
@@ -44,9 +48,9 @@ pub async fn import_csv(source: CsvSource, content: String) -> Result<ImportResu
 
         let result = sqlx::query(
             r#"
-            INSERT INTO transactions (date, description, amount, source, currency, dedup_hash, is_pending)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            ON CONFLICT (dedup_hash) DO NOTHING
+            INSERT INTO transactions (date, description, amount, source, currency, dedup_hash, is_pending, user_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            ON CONFLICT (user_id, dedup_hash) DO NOTHING
             "#,
         )
         .bind(row.date)
@@ -56,6 +60,7 @@ pub async fn import_csv(source: CsvSource, content: String) -> Result<ImportResu
         .bind(&row.currency)
         .bind(&dedup_hash)
         .bind(row.is_pending)
+        .bind(user_id)
         .execute(db)
         .await
         .map_err(|e| ServerFnError::new(e.to_string()))?;
@@ -72,11 +77,12 @@ pub async fn import_csv(source: CsvSource, content: String) -> Result<ImportResu
     Ok(ImportResult { imported, skipped, pending })
 }
 
-/// Fetch transactions with optional filtering.
+/// Fetch transactions for the current user with optional filtering.
 #[server]
 pub async fn get_transactions(
     filter: TransactionFilter,
 ) -> Result<Vec<Transaction>, ServerFnError> {
+    let user_id = current_user_id().await?;
     let db = pool();
 
     let rows: Vec<TransactionRow> = sqlx::query_as(
@@ -95,18 +101,19 @@ pub async fn get_transactions(
             c.parent_id AS category_parent_id
         FROM transactions t
         LEFT JOIN categories c ON c.id = t.category_id
-        WHERE
-            ($1::boolean = false OR t.category_id IS NULL)
-            AND ($2::uuid IS NULL OR t.category_id = $2)
-            AND ($3::uuid IS NULL OR EXISTS (
+        WHERE t.user_id = $1
+            AND ($2::boolean = false OR t.category_id IS NULL)
+            AND ($3::uuid IS NULL OR t.category_id = $3)
+            AND ($4::uuid IS NULL OR EXISTS (
                 SELECT 1 FROM transaction_groups tg
-                WHERE tg.transaction_id = t.id AND tg.group_id = $3
+                WHERE tg.transaction_id = t.id AND tg.group_id = $4
             ))
-            AND ($4::date IS NULL OR t.date >= $4)
-            AND ($5::date IS NULL OR t.date <= $5)
+            AND ($5::date IS NULL OR t.date >= $5)
+            AND ($6::date IS NULL OR t.date <= $6)
         ORDER BY t.date DESC NULLS LAST, t.created_at DESC
         "#,
     )
+    .bind(user_id)
     .bind(filter.unprocessed_only)
     .bind(filter.category_id)
     .bind(filter.group_id)
@@ -119,19 +126,21 @@ pub async fn get_transactions(
     Ok(rows.into_iter().map(Into::into).collect())
 }
 
-/// Return the next unclassified (non-pending) transaction and the total remaining count.
-/// The queue is ordered oldest-first (date ASC, created_at ASC).
+/// Return the next unclassified (non-pending) transaction for the current user
+/// and the total remaining count. The queue is ordered oldest-first.
 #[server]
 pub async fn get_queue_state() -> Result<QueueState, ServerFnError> {
+    let user_id = current_user_id().await?;
     let db = pool();
 
-    let remaining: i64 =
-        sqlx::query_scalar(
-            "SELECT COUNT(*) FROM transactions WHERE category_id IS NULL AND is_pending = false",
-        )
-        .fetch_one(db)
-        .await
-        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    let remaining: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM transactions \
+         WHERE user_id = $1 AND category_id IS NULL AND is_pending = false",
+    )
+    .bind(user_id)
+    .fetch_one(db)
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
 
     let rows: Vec<TransactionRow> = sqlx::query_as(
         r#"
@@ -149,11 +158,12 @@ pub async fn get_queue_state() -> Result<QueueState, ServerFnError> {
             c.parent_id AS category_parent_id
         FROM transactions t
         LEFT JOIN categories c ON c.id = t.category_id
-        WHERE t.category_id IS NULL AND t.is_pending = false
+        WHERE t.user_id = $1 AND t.category_id IS NULL AND t.is_pending = false
         ORDER BY t.date ASC NULLS LAST, t.created_at ASC
         LIMIT 4
         "#,
     )
+    .bind(user_id)
     .fetch_all(db)
     .await
     .map_err(|e| ServerFnError::new(e.to_string()))?;

@@ -15,9 +15,17 @@ pub(crate) mod db_rows;
 #[cfg(feature = "server")]
 pub(crate) mod csv;
 
+/// Auth: OAuth flow, session management, axum middleware.
+#[cfg(feature = "server")]
+pub mod auth;
+
+/// Convenience re-export so web can call `api::current_user_id()` directly.
+#[cfg(feature = "server")]
+pub use auth::current_user_id;
+
 pub mod server_fns;
 
-// Re-export commonly used server function types at crate root for convenience.
+// Re-export commonly used types and server function stubs at crate root.
 pub use models::*;
 pub use server_fns::analytics::*;
 pub use server_fns::categories::*;
