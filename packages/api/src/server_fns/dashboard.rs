@@ -71,20 +71,23 @@ pub async fn get_dashboard_stats() -> Result<DashboardStats, ServerFnError> {
     .await
     .map_err(|e| ServerFnError::new(e.to_string()))?;
 
-    // Top 5 categories this month
+    // All categories with spend this month (client groups by top-level and applies top-5 limit)
     let cat_rows: Vec<CategorySpendRow> = sqlx::query_as(
         r#"
         SELECT
             c.id,
             c.name,
             c.color,
+            c.parent_id,
+            p.name  AS parent_name,
+            p.color AS parent_color,
             ABS(SUM(t.amount)) AS total
         FROM transactions t
         JOIN categories c ON c.id = t.category_id
+        LEFT JOIN categories p ON c.parent_id = p.id
         WHERE t.user_id = $1 AND t.date >= $2 AND t.amount < 0 AND t.is_pending = false
-        GROUP BY c.id, c.name, c.color
+        GROUP BY c.id, c.name, c.color, c.parent_id, p.name, p.color
         ORDER BY total DESC
-        LIMIT 5
         "#,
     )
     .bind(user_id)
@@ -99,6 +102,9 @@ pub async fn get_dashboard_stats() -> Result<DashboardStats, ServerFnError> {
             category_id: r.id,
             category_name: r.name,
             category_color: r.color,
+            parent_id: r.parent_id,
+            parent_name: r.parent_name,
+            parent_color: r.parent_color,
             total: r.total,
         })
         .collect();

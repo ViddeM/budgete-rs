@@ -28,9 +28,13 @@ pub async fn get_spending_by_category(
             c.id,
             c.name,
             c.color,
+            c.parent_id,
+            p.name  AS parent_name,
+            p.color AS parent_color,
             SUM(-t.amount) AS total
         FROM transactions t
         JOIN categories c ON t.category_id = c.id
+        LEFT JOIN categories p ON c.parent_id = p.id
         WHERE t.user_id = $1
           AND t.date >= $2
           AND t.date <= $3
@@ -40,7 +44,7 @@ pub async fn get_spending_by_category(
                 SELECT 1 FROM transaction_groups tg
                 WHERE tg.transaction_id = t.id AND tg.group_id = $4
               ))
-        GROUP BY c.id, c.name, c.color
+        GROUP BY c.id, c.name, c.color, c.parent_id, p.name, p.color
         ORDER BY SUM(-t.amount) DESC
         "#,
     )
@@ -58,6 +62,9 @@ pub async fn get_spending_by_category(
             category_id: r.id,
             category_name: r.name,
             category_color: r.color,
+            parent_id: r.parent_id,
+            parent_name: r.parent_name,
+            parent_color: r.parent_color,
             total: r.total,
         })
         .collect())

@@ -28,7 +28,13 @@ pub fn Classify() -> Element {
 
     // ── New top-level category form ────────────────────────────────────────
     let mut new_cat_name = use_signal(String::new);
+    let mut new_cat_color = use_signal(|| "#6366f1".to_string());
     let mut cat_error: Signal<Option<String>> = use_signal(|| None);
+
+    // ── Undo state ────────────────────────────────────────────────────────
+    // Stores the ID of the most recently classified transaction so the user
+    // can undo. Cleared on the next classification or after undoing.
+    let mut last_classified: Signal<Option<Uuid>> = use_signal(|| None);
 
     // ── Event handlers ─────────────────────────────────────────────────────
 
@@ -39,9 +45,10 @@ pub fn Classify() -> Element {
             cat_error.set(Some("Name cannot be empty".to_string()));
             return;
         }
-        match create_category(name, String::new(), None).await {
+        match create_category(name, new_cat_color(), None).await {
             Ok(_) => {
                 new_cat_name.set(String::new());
+                new_cat_color.set("#6366f1".to_string());
                 categories_res.restart();
             }
             Err(e) => cat_error.set(Some(e.to_string())),
@@ -58,7 +65,7 @@ pub fn Classify() -> Element {
             edit_error.set(Some("Name cannot be empty".to_string()));
             return;
         }
-        let color = if editing_is_top_level() { String::new() } else { edit_color() };
+        let color = edit_color();
         match update_category(id, name, color).await {
             Ok(_) => {
                 editing_id.set(None);
@@ -93,8 +100,18 @@ pub fn Classify() -> Element {
     };
 
     let on_classify = move |(tx, cat): (api::models::Transaction, Category)| async move {
-        let _ = classify_transaction(tx.id, Some(cat.id)).await;
+        let tx_id = tx.id;
+        let _ = classify_transaction(tx_id, Some(cat.id)).await;
+        last_classified.set(Some(tx_id));
         queue_res.restart();
+    };
+
+    let on_undo = move |_| async move {
+        if let Some(tx_id) = last_classified() {
+            let _ = classify_transaction(tx_id, None).await;
+            last_classified.set(None);
+            queue_res.restart();
+        }
     };
 
     // ── Derived data ───────────────────────────────────────────────────────
@@ -136,6 +153,12 @@ pub fn Classify() -> Element {
                                     style: "width: 100%; padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.9rem; box-sizing: border-box;",
                                 }
                             }
+                            input {
+                                r#type: "color",
+                                value: new_cat_color(),
+                                oninput: move |e| new_cat_color.set(e.value()),
+                                style: "width: 36px; height: 36px; flex-shrink: 0; padding: 2px; border: 1px solid #d1d5db; border-radius: 8px; cursor: pointer; appearance: none; -webkit-appearance: none;",
+                            }
                             button {
                                 onclick: create_cat,
                                 style: "padding: 7px 14px; background: #1e293b; color: #f1f5f9; border: none; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600; white-space: nowrap;",
@@ -174,16 +197,22 @@ pub fn Classify() -> Element {
                                             // Inline edit form
                                             div {
                                                 style: "padding: 10px 12px; background: #f9fafb; border-bottom: 1px solid #e5e7eb;",
-                                                // Row 1: text input (no color for top-level categories)
-                                                div {
-                                                    style: "display: flex; gap: 8px; align-items: center;",
-                                                    input {
-                                                        r#type: "text",
-                                                        value: edit_name(),
-                                                        oninput: move |e| edit_name.set(e.value()),
-                                                        style: "flex: 1; min-width: 0; padding: 5px 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.85rem; box-sizing: border-box;",
-                                                    }
-                                                }
+                                                                // Row 1: text input + color (top-level categories now also have a color)
+                                                                div {
+                                                                    style: "display: flex; gap: 8px; align-items: center;",
+                                                                    input {
+                                                                        r#type: "text",
+                                                                        value: edit_name(),
+                                                                        oninput: move |e| edit_name.set(e.value()),
+                                                                        style: "flex: 1; min-width: 0; padding: 5px 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.85rem; box-sizing: border-box;",
+                                                                    }
+                                                                    input {
+                                                                        r#type: "color",
+                                                                        value: edit_color(),
+                                                                        oninput: move |e| edit_color.set(e.value()),
+                                                                        style: "width: 32px; height: 32px; flex-shrink: 0; padding: 2px; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; appearance: none; -webkit-appearance: none;",
+                                                                    }
+                                                                }
                                                 // Row 2: action buttons
                                                 div {
                                                     style: "display: flex; gap: 6px; justify-content: flex-end; margin-top: 6px;",
@@ -203,14 +232,17 @@ pub fn Classify() -> Element {
                                                     p { style: "color: #dc2626; font-size: 0.78rem; margin: 4px 0 0;", "{err}" }
                                                 }
                                             }
-                                        } else {
-                                            // Display row
-                                            div {
-                                                style: "display: flex; align-items: center; gap: 8px; padding: 10px 12px;",
-                                                span {
-                                                    style: "flex: 1; font-size: 0.9rem; font-weight: 600; color: #111827;",
-                                                    "{parent_name}"
-                                                }
+                                                         } else {
+                                                            // Display row
+                                                            div {
+                                                                style: "display: flex; align-items: center; gap: 8px; padding: 10px 12px;",
+                                                                span {
+                                                                    style: "width: 12px; height: 12px; border-radius: 50%; background: {parent_color}; flex-shrink: 0;",
+                                                                }
+                                                                span {
+                                                                    style: "flex: 1; font-size: 0.9rem; font-weight: 600; color: #111827;",
+                                                                    "{parent_name}"
+                                                                }
                                                 button {
                                                      onclick: move |_| {
                                                         editing_id.set(Some(parent_id));
@@ -391,6 +423,17 @@ pub fn Classify() -> Element {
                 // ── Right column: classify queue ───────────────────────────
                 div {
                     style: "flex: 1; min-width: 0;",
+
+                    if last_classified().is_some() {
+                        div {
+                            style: "margin-bottom: 12px;",
+                            button {
+                                onclick: on_undo,
+                                style: "padding: 6px 14px; background: transparent; color: #374151; border: 1px solid #d1d5db; border-radius: 8px; cursor: pointer; font-size: 0.82rem; font-weight: 500;",
+                                "↩ Undo"
+                            }
+                        }
+                    }
 
                     match queue_res() {
                         None => rsx! { p { "Loading…" } },

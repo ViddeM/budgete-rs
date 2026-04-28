@@ -99,6 +99,9 @@ pub(crate) struct CategorySpendRow {
     pub id: uuid::Uuid,
     pub name: String,
     pub color: String,
+    pub parent_id: Option<uuid::Uuid>,
+    pub parent_name: Option<String>,
+    pub parent_color: Option<String>,
     pub total: rust_decimal::Decimal,
 }
 

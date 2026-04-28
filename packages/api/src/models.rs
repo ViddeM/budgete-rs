@@ -65,7 +65,7 @@ pub struct DashboardStats {
     pub month_income: Decimal,
     /// Number of transactions with category_id IS NULL
     pub unprocessed_count: i64,
-    /// Top 5 categories by spend this month
+    /// All categories with spend this month, with parent hierarchy info for client-side grouping.
     pub top_categories: Vec<CategorySpend>,
     /// Month-over-month expense delta percentage
     pub mom_delta_pct: Option<Decimal>,
@@ -76,6 +76,12 @@ pub struct CategorySpend {
     pub category_id: Uuid,
     pub category_name: String,
     pub category_color: String,
+    /// `Some` when this entry is a subcategory; the parent's id.
+    pub parent_id: Option<Uuid>,
+    /// Display name of the parent category, when `parent_id` is set.
+    pub parent_name: Option<String>,
+    /// Color of the parent category, when `parent_id` is set.
+    pub parent_color: Option<String>,
     pub total: Decimal,
 }
 
