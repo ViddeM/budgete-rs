@@ -98,7 +98,8 @@ pub async fn get_transactions(
             t.category_id,
             c.name     AS category_name,
             c.color    AS category_color,
-            c.parent_id AS category_parent_id
+            c.parent_id AS category_parent_id,
+            c.ignored  AS category_ignored
         FROM transactions t
         LEFT JOIN categories c ON c.id = t.category_id
         WHERE t.user_id = $1
@@ -155,7 +156,8 @@ pub async fn get_queue_state() -> Result<QueueState, ServerFnError> {
             t.category_id,
             c.name     AS category_name,
             c.color    AS category_color,
-            c.parent_id AS category_parent_id
+            c.parent_id AS category_parent_id,
+            c.ignored  AS category_ignored
         FROM transactions t
         LEFT JOIN categories c ON c.id = t.category_id
         WHERE t.user_id = $1 AND t.category_id IS NULL AND t.is_pending = false

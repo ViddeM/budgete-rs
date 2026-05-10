@@ -40,6 +40,7 @@ pub async fn get_spending_by_category(
           AND t.date <= $3
           AND t.is_pending = false
           AND t.amount < 0
+          AND c.ignored = false
           AND ($4::uuid IS NULL OR EXISTS (
                 SELECT 1 FROM transaction_groups tg
                 WHERE tg.transaction_id = t.id AND tg.group_id = $4
@@ -89,10 +90,12 @@ pub async fn get_spending_over_time(
             SUM(CASE WHEN t.amount < 0 THEN -t.amount ELSE 0::numeric END) AS expenses,
             SUM(CASE WHEN t.amount > 0 THEN  t.amount ELSE 0::numeric END) AS income
         FROM transactions t
+        LEFT JOIN categories c ON c.id = t.category_id
         WHERE t.user_id = $1
           AND t.date >= $2
           AND t.date <= $3
           AND t.is_pending = false
+          AND COALESCE(c.ignored, false) = false
           AND ($4::uuid IS NULL OR EXISTS (
                 SELECT 1 FROM transaction_groups tg
                 WHERE tg.transaction_id = t.id AND tg.group_id = $4

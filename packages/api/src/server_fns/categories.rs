@@ -16,7 +16,7 @@ pub async fn list_categories() -> Result<Vec<Category>, ServerFnError> {
     let user_id = current_user_id().await?;
     let db = pool();
     let rows: Vec<CategoryRow> = sqlx::query_as(
-        "SELECT id, name, color, parent_id FROM categories \
+        "SELECT id, name, color, parent_id, ignored FROM categories \
          WHERE user_id = $1 \
          ORDER BY COALESCE(parent_id, id), parent_id NULLS FIRST, name",
     )
@@ -35,17 +35,19 @@ pub async fn create_category(
     name: String,
     color: String,
     parent_id: Option<Uuid>,
+    ignored: bool,
 ) -> Result<Category, ServerFnError> {
     let user_id = current_user_id().await?;
     let db = pool();
     let row: CategoryRow = sqlx::query_as(
-        "INSERT INTO categories (name, color, parent_id, user_id) \
-         VALUES ($1, $2, $3, $4) \
-         RETURNING id, name, color, parent_id",
+        "INSERT INTO categories (name, color, parent_id, ignored, user_id) \
+         VALUES ($1, $2, $3, $4, $5) \
+         RETURNING id, name, color, parent_id, ignored",
     )
     .bind(&name)
     .bind(&color)
     .bind(parent_id)
+    .bind(ignored)
     .bind(user_id)
     .fetch_one(db)
     .await
@@ -60,16 +62,18 @@ pub async fn update_category(
     id: Uuid,
     name: String,
     color: String,
+    ignored: bool,
 ) -> Result<Category, ServerFnError> {
     let user_id = current_user_id().await?;
     let db = pool();
     let row: CategoryRow = sqlx::query_as(
-        "UPDATE categories SET name = $1, color = $2 \
-         WHERE id = $3 AND user_id = $4 \
-         RETURNING id, name, color, parent_id",
+        "UPDATE categories SET name = $1, color = $2, ignored = $3 \
+         WHERE id = $4 AND user_id = $5 \
+         RETURNING id, name, color, parent_id, ignored",
     )
     .bind(&name)
     .bind(&color)
+    .bind(ignored)
     .bind(id)
     .bind(user_id)
     .fetch_one(db)

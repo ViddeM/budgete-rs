@@ -12,12 +12,13 @@ pub(crate) struct CategoryRow {
     pub name: String,
     pub color: String,
     pub parent_id: Option<uuid::Uuid>,
+    pub ignored: bool,
 }
 
 #[cfg(feature = "server")]
 impl From<CategoryRow> for Category {
     fn from(r: CategoryRow) -> Self {
-        Category { id: r.id, name: r.name, color: r.color, parent_id: r.parent_id }
+        Category { id: r.id, name: r.name, color: r.color, parent_id: r.parent_id, ignored: r.ignored }
     }
 }
 
@@ -50,6 +51,7 @@ pub(crate) struct TransactionRow {
     pub category_name: Option<String>,
     pub category_color: Option<String>,
     pub category_parent_id: Option<uuid::Uuid>,
+    pub category_ignored: Option<bool>,
 }
 
 #[cfg(feature = "server")]
@@ -60,6 +62,7 @@ impl From<TransactionRow> for Transaction {
             name: r.category_name.unwrap_or_default(),
             color: r.category_color.unwrap_or_default(),
             parent_id: r.category_parent_id,
+            ignored: r.category_ignored.unwrap_or(false),
         });
         Transaction {
             id: r.id,

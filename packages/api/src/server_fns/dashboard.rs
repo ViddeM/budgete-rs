@@ -35,8 +35,10 @@ pub async fn get_dashboard_stats() -> Result<DashboardStats, ServerFnError> {
         SELECT
             COALESCE(SUM(amount) FILTER (WHERE amount < 0), 0) AS expenses,
             COALESCE(SUM(amount) FILTER (WHERE amount > 0), 0) AS income
-        FROM transactions
-        WHERE user_id = $1 AND date >= $2 AND is_pending = false
+        FROM transactions t
+        LEFT JOIN categories c ON c.id = t.category_id
+        WHERE t.user_id = $1 AND t.date >= $2 AND t.is_pending = false
+          AND COALESCE(c.ignored, false) = false
         "#,
     )
     .bind(user_id)
@@ -50,8 +52,10 @@ pub async fn get_dashboard_stats() -> Result<DashboardStats, ServerFnError> {
         r#"
         SELECT
             COALESCE(SUM(amount) FILTER (WHERE amount < 0), 0) AS expenses
-        FROM transactions
-        WHERE user_id = $1 AND date >= $2 AND date < $3 AND is_pending = false
+        FROM transactions t
+        LEFT JOIN categories c ON c.id = t.category_id
+        WHERE t.user_id = $1 AND t.date >= $2 AND t.date < $3 AND t.is_pending = false
+          AND COALESCE(c.ignored, false) = false
         "#,
     )
     .bind(user_id)
@@ -86,6 +90,7 @@ pub async fn get_dashboard_stats() -> Result<DashboardStats, ServerFnError> {
         JOIN categories c ON c.id = t.category_id
         LEFT JOIN categories p ON c.parent_id = p.id
         WHERE t.user_id = $1 AND t.date >= $2 AND t.amount < 0 AND t.is_pending = false
+          AND c.ignored = false
         GROUP BY c.id, c.name, c.color, c.parent_id, p.name, p.color
         ORDER BY total DESC
         "#,

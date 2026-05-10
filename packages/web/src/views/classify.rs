@@ -24,17 +24,22 @@ pub fn Classify() -> Element {
     let mut adding_sub_for: Signal<Option<Uuid>> = use_signal(|| None);
     let mut new_sub_name = use_signal(String::new);
     let mut new_sub_color = use_signal(|| "#6366f1".to_string());
+    let mut new_sub_ignored = use_signal(|| false);
     let mut sub_error: Signal<Option<String>> = use_signal(|| None);
 
     // ── New top-level category form ────────────────────────────────────────
     let mut new_cat_name = use_signal(String::new);
     let mut new_cat_color = use_signal(|| "#6366f1".to_string());
+    let mut new_cat_ignored = use_signal(|| false);
     let mut cat_error: Signal<Option<String>> = use_signal(|| None);
 
     // ── Undo state ────────────────────────────────────────────────────────
     // Stores the ID of the most recently classified transaction so the user
     // can undo. Cleared on the next classification or after undoing.
     let mut last_classified: Signal<Option<Uuid>> = use_signal(|| None);
+
+    // Shared inline-edit ignored flag.
+    let mut edit_ignored = use_signal(|| false);
 
     // ── Event handlers ─────────────────────────────────────────────────────
 
@@ -45,10 +50,11 @@ pub fn Classify() -> Element {
             cat_error.set(Some("Name cannot be empty".to_string()));
             return;
         }
-        match create_category(name, new_cat_color(), None).await {
+        match create_category(name, new_cat_color(), None, new_cat_ignored()).await {
             Ok(_) => {
                 new_cat_name.set(String::new());
                 new_cat_color.set("#6366f1".to_string());
+                new_cat_ignored.set(false);
                 categories_res.restart();
             }
             Err(e) => cat_error.set(Some(e.to_string())),
@@ -66,7 +72,7 @@ pub fn Classify() -> Element {
             return;
         }
         let color = edit_color();
-        match update_category(id, name, color).await {
+        match update_category(id, name, color, edit_ignored()).await {
             Ok(_) => {
                 editing_id.set(None);
                 edit_error.set(None);
@@ -87,9 +93,10 @@ pub fn Classify() -> Element {
             sub_error.set(Some("Name cannot be empty".to_string()));
             return;
         }
-        match create_category(name, new_sub_color(), Some(parent_id)).await {
+        match create_category(name, new_sub_color(), Some(parent_id), new_sub_ignored()).await {
             Ok(_) => {
                 new_sub_name.set(String::new());
+                new_sub_ignored.set(false);
                 adding_sub_for.set(None);
                 sub_error.set(None);
                 categories_res.restart();
@@ -165,6 +172,19 @@ pub fn Classify() -> Element {
                                 "Add"
                             }
                         }
+                        label {
+                            style: "display: flex; align-items: center; gap: 6px; margin-top: 8px; cursor: pointer;",
+                            input {
+                                r#type: "checkbox",
+                                checked: new_cat_ignored(),
+                                oninput: move |e| new_cat_ignored.set(e.checked()),
+                                style: "width: 14px; height: 14px; cursor: pointer; accent-color: #1e293b;",
+                            }
+                            span {
+                                style: "font-size: 0.8rem; color: #6b7280; user-select: none;",
+                                "Ignore in totals"
+                            }
+                        }
                         if let Some(err) = cat_error() {
                             p { style: "color: #dc2626; font-size: 0.8rem; margin: 6px 0 0;", "{err}" }
                         }
@@ -179,6 +199,7 @@ pub fn Classify() -> Element {
                                 let parent_id = parent.id;
                                 let parent_name = parent.name.clone();
                                 let parent_color = parent.color.clone();
+                                let parent_ignored = parent.ignored;
                                 let subcats: Vec<Category> = categories
                                     .iter()
                                     .filter(|c| c.parent_id == Some(parent_id))
@@ -212,10 +233,24 @@ pub fn Classify() -> Element {
                                                                         oninput: move |e| edit_color.set(e.value()),
                                                                         style: "width: 32px; height: 32px; flex-shrink: 0; padding: 2px; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; appearance: none; -webkit-appearance: none;",
                                                                     }
+                                                                 }
+                                                                // Row 2: ignored checkbox
+                                                                label {
+                                                                    style: "display: flex; align-items: center; gap: 6px; margin-top: 6px; cursor: pointer;",
+                                                                    input {
+                                                                        r#type: "checkbox",
+                                                                        checked: edit_ignored(),
+                                                                        oninput: move |e| edit_ignored.set(e.checked()),
+                                                                        style: "width: 14px; height: 14px; cursor: pointer; accent-color: #1e293b;",
+                                                                    }
+                                                                    span {
+                                                                        style: "font-size: 0.78rem; color: #6b7280; user-select: none;",
+                                                                        "Ignore in totals"
+                                                                    }
                                                                 }
-                                                // Row 2: action buttons
-                                                div {
-                                                    style: "display: flex; gap: 6px; justify-content: flex-end; margin-top: 6px;",
+                                                                // Row 3: action buttons
+                                                                div {
+                                                                    style: "display: flex; gap: 6px; justify-content: flex-end; margin-top: 6px;",
                                                     button {
                                                         onclick: save_edit,
                                                         style: "padding: 5px 14px; background: #1e293b; color: #f1f5f9; border: none; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600;",
@@ -239,18 +274,25 @@ pub fn Classify() -> Element {
                                                                 span {
                                                                     style: "width: 12px; height: 12px; border-radius: 50%; background: {parent_color}; flex-shrink: 0;",
                                                                 }
-                                                                span {
+                                                                 span {
                                                                     style: "flex: 1; font-size: 0.9rem; font-weight: 600; color: #111827;",
                                                                     "{parent_name}"
                                                                 }
-                                                button {
-                                                     onclick: move |_| {
-                                                        editing_id.set(Some(parent_id));
-                                                        edit_name.set(parent_name.clone());
-                                                        edit_color.set(parent_color.clone());
-                                                        editing_is_top_level.set(true);
-                                                        edit_error.set(None);
-                                                    },
+                                                                if parent_ignored {
+                                                                    span {
+                                                                        style: "font-size: 0.68rem; color: #9ca3af; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 4px; padding: 1px 5px; flex-shrink: 0;",
+                                                                        "ignored"
+                                                                    }
+                                                                }
+                                                 button {
+                                                      onclick: move |_| {
+                                                         editing_id.set(Some(parent_id));
+                                                         edit_name.set(parent_name.clone());
+                                                         edit_color.set(parent_color.clone());
+                                                         edit_ignored.set(parent_ignored);
+                                                         editing_is_top_level.set(true);
+                                                         edit_error.set(None);
+                                                     },
                                                     class: "btn-ghost",
                                                     style: "padding: 3px 10px; background: transparent; color: #6b7280; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-size: 0.75rem;",
                                                     "Edit"
@@ -274,6 +316,7 @@ pub fn Classify() -> Element {
                                                 let sub_id = sub.id;
                                                 let sub_name = sub.name.clone();
                                                 let sub_color = sub.color.clone();
+                                                let sub_ignored = sub.ignored;
                                                 let is_editing_sub = editing_id() == Some(sub_id);
 
                                                 rsx! {
@@ -299,10 +342,24 @@ pub fn Classify() -> Element {
                                                                         oninput: move |e| edit_color.set(e.value()),
                                                                         style: "width: 32px; height: 32px; flex-shrink: 0; padding: 2px; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; appearance: none; -webkit-appearance: none;",
                                                                     }
-                                                                }
-                                                                // Row 2: action buttons
-                                                                div {
-                                                                    style: "display: flex; gap: 6px; justify-content: flex-end; margin-top: 6px;",
+                                                                                }
+                                                                                // Row 2: ignored checkbox
+                                                                                label {
+                                                                                    style: "display: flex; align-items: center; gap: 6px; margin-top: 6px; cursor: pointer;",
+                                                                                    input {
+                                                                                        r#type: "checkbox",
+                                                                                        checked: edit_ignored(),
+                                                                                        oninput: move |e| edit_ignored.set(e.checked()),
+                                                                                        style: "width: 14px; height: 14px; cursor: pointer; accent-color: #1e293b;",
+                                                                                    }
+                                                                                    span {
+                                                                                        style: "font-size: 0.78rem; color: #6b7280; user-select: none;",
+                                                                                        "Ignore in totals"
+                                                                                    }
+                                                                                }
+                                                                                // Row 3: action buttons
+                                                                                div {
+                                                                                    style: "display: flex; gap: 6px; justify-content: flex-end; margin-top: 6px;",
                                                                     button {
                                                                         onclick: save_edit,
                                                                         style: "padding: 5px 14px; background: #1e293b; color: #f1f5f9; border: none; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: 600;",
@@ -325,18 +382,25 @@ pub fn Classify() -> Element {
                                                                 span {
                                                                     style: "width: 10px; height: 10px; border-radius: 50%; background: {sub_color}; flex-shrink: 0;",
                                                                 }
-                                                                span {
-                                                                    style: "flex: 1; font-size: 0.85rem; color: #374151;",
-                                                                    "{sub_name}"
-                                                                }
-                                                                button {
-                                                                    onclick: move |_| {
-                                                                        editing_id.set(Some(sub_id));
-                                                                        edit_name.set(sub_name.clone());
-                                                                        edit_color.set(sub_color.clone());
-                                                                        editing_is_top_level.set(false);
-                                                                        edit_error.set(None);
-                                                                    },
+                                                                                span {
+                                                                                    style: "flex: 1; font-size: 0.85rem; color: #374151;",
+                                                                                    "{sub_name}"
+                                                                                }
+                                                                                if sub_ignored {
+                                                                                    span {
+                                                                                        style: "font-size: 0.68rem; color: #9ca3af; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 4px; padding: 1px 5px; flex-shrink: 0;",
+                                                                                        "ignored"
+                                                                                    }
+                                                                                }
+                                                                                button {
+                                                                                    onclick: move |_| {
+                                                                                        editing_id.set(Some(sub_id));
+                                                                                        edit_name.set(sub_name.clone());
+                                                                                        edit_color.set(sub_color.clone());
+                                                                                        edit_ignored.set(sub_ignored);
+                                                                                        editing_is_top_level.set(false);
+                                                                                        edit_error.set(None);
+                                                                                    },
                                                                     class: "btn-ghost",
                                                                     style: "padding: 2px 8px; background: transparent; color: #6b7280; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-size: 0.72rem;",
                                                                     "Edit"
@@ -380,10 +444,24 @@ pub fn Classify() -> Element {
                                                             oninput: move |e| new_sub_color.set(e.value()),
                                                             style: "width: 32px; height: 32px; flex-shrink: 0; padding: 2px; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; appearance: none; -webkit-appearance: none;",
                                                         }
-                                                    }
-                                                    // Row 2: action buttons
-                                                    div {
-                                                        style: "display: flex; gap: 6px; justify-content: flex-end; margin-top: 2px;",
+                                                                    }
+                                                                    // Row 1.5: ignored checkbox
+                                                                    label {
+                                                                        style: "display: flex; align-items: center; gap: 6px; margin: 4px 0 2px; cursor: pointer;",
+                                                                        input {
+                                                                            r#type: "checkbox",
+                                                                            checked: new_sub_ignored(),
+                                                                            oninput: move |e| new_sub_ignored.set(e.checked()),
+                                                                            style: "width: 14px; height: 14px; cursor: pointer; accent-color: #1e293b;",
+                                                                        }
+                                                                        span {
+                                                                            style: "font-size: 0.78rem; color: #6b7280; user-select: none;",
+                                                                            "Ignore in totals"
+                                                                        }
+                                                                    }
+                                                                    // Row 2: action buttons
+                                                                    div {
+                                                                        style: "display: flex; gap: 6px; justify-content: flex-end; margin-top: 2px;",
                                                         button {
                                                             onclick: create_sub,
                                                             style: "padding: 5px 14px; background: #1e293b; color: #f1f5f9; border: none; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: 600;",

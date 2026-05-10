@@ -14,6 +14,9 @@ pub struct Category {
     pub color: String,
     /// `None` for top-level categories; `Some(parent_id)` for subcategories.
     pub parent_id: Option<Uuid>,
+    /// When `true`, transactions in this category are excluded from dashboard
+    /// totals and analytics aggregations.
+    pub ignored: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
