@@ -19,7 +19,7 @@ pub fn Login() -> Element {
                 style: "text-align:center; padding:2rem;",
                 h1 {
                     style: "color:#f1f5f9; font-size:2rem; font-weight:700; margin-bottom:0.5rem; letter-spacing:-0.02em;",
-                    "Budgete"
+                    "BudgeteRS"
                 }
 
                 if is_local {
