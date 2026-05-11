@@ -39,6 +39,36 @@ pub(crate) fn clear_session_cookie() -> String {
 }
 
 // ---------------------------------------------------------------------------
+// Local-mode user
+// ---------------------------------------------------------------------------
+
+/// Fixed UUID for the built-in local-mode user (`00000000-0000-0000-0000-000000000001`).
+///
+/// This UUID is used as the `user_id` for every request when `LOCAL_MODE=true`.
+/// The corresponding DB row is created by [`ensure_local_user()`] at startup.
+pub const LOCAL_USER_ID: Uuid = Uuid::from_bytes([
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+]);
+
+/// Ensure the local-mode user row exists in the `users` table.
+///
+/// Idempotent — safe to call on every server startup.  Only needed when
+/// `LOCAL_MODE=true`; the row has `provider = 'local'` and a fixed UUID so
+/// that all data imported in local mode is consistently owned by one identity.
+pub async fn ensure_local_user() -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "INSERT INTO users (id, provider, provider_id, name) \
+         VALUES ($1, 'local', 'local', 'Local User') \
+         ON CONFLICT DO NOTHING",
+    )
+    .bind(LOCAL_USER_ID)
+    .execute(pool())
+    .await?;
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
 // Database operations
 // ---------------------------------------------------------------------------
 
@@ -120,9 +150,15 @@ pub(crate) async fn delete_session(token: Uuid) -> Result<(), sqlx::Error> {
 // ---------------------------------------------------------------------------
 
 /// Extract the authenticated user's UUID from the current server-function
-/// request.  Returns a `ServerFnError` if the request has no valid session,
-/// which propagates to the client as an error response.
+/// request.
+///
+/// In `LOCAL_MODE`, always returns [`LOCAL_USER_ID`] without checking any
+/// session cookie.  Otherwise validates the session cookie against the DB.
 pub async fn current_user_id() -> Result<Uuid, ServerFnError> {
+    if crate::config::config().local_mode {
+        return Ok(LOCAL_USER_ID);
+    }
+
     use dioxus::prelude::dioxus_fullstack::FullstackContext;
 
     let ctx = FullstackContext::current()

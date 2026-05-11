@@ -7,6 +7,9 @@
 pub mod models;
 
 #[cfg(feature = "server")]
+pub mod config;
+
+#[cfg(feature = "server")]
 pub mod db;
 
 #[cfg(feature = "server")]
@@ -31,4 +34,5 @@ pub use server_fns::analytics::*;
 pub use server_fns::categories::*;
 pub use server_fns::dashboard::*;
 pub use server_fns::groups::*;
+pub use server_fns::local_mode::*;
 pub use server_fns::transactions::*;

@@ -6,7 +6,6 @@ use axum::{
 use serde::Deserialize;
 use uuid::Uuid;
 
-use super::config::oauth_config;
 use super::session::{
     clear_session_cookie, create_session, delete_session, session_token_from_headers,
     set_session_cookie, upsert_user,
@@ -17,7 +16,10 @@ use super::session::{
 // ---------------------------------------------------------------------------
 
 pub async fn login_handler() -> Response {
-    let cfg = oauth_config();
+    let cfg = crate::config::config()
+        .oauth
+        .as_ref()
+        .expect("OAuth is not configured — is LOCAL_MODE=true?");
 
     // Generate a random state token to prevent CSRF.
     let state = Uuid::new_v4().to_string();
@@ -76,11 +78,14 @@ pub async fn callback_handler(
         return (StatusCode::BAD_REQUEST, "Invalid OAuth state").into_response();
     }
 
-    let cfg = oauth_config();
+    let cfg = crate::config::config()
+        .oauth
+        .as_ref()
+        .expect("OAuth is not configured — is LOCAL_MODE=true?");
 
     // Exchange authorization code for an access token.
     tracing::info!("OAuth callback: exchanging code for token");
-    let token_res = match exchange_code(&cfg, &params.code).await {
+    let token_res = match exchange_code(cfg, &params.code).await {
         Ok(t) => t,
         Err(e) => {
             tracing::error!("OAuth token exchange failed: {e}");
@@ -90,7 +95,7 @@ pub async fn callback_handler(
 
     // Fetch the user's identity from the userinfo endpoint.
     tracing::info!("OAuth callback: fetching userinfo");
-    let userinfo = match fetch_userinfo(&cfg, &token_res.access_token).await {
+    let userinfo = match fetch_userinfo(cfg, &token_res.access_token).await {
         Ok(u) => u,
         Err(e) => {
             tracing::error!("OAuth userinfo fetch failed: {e}");

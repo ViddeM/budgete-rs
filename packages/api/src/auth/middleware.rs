@@ -14,8 +14,14 @@ use super::session::{get_user_id_from_token, session_token_from_headers};
 /// - `/_dioxus/*` — Dioxus hot-reload and client bundle
 /// - `/wasm/*`   — compiled Wasm + JS bundle served by dx
 ///
+/// When `LOCAL_MODE=true`, all requests pass through unconditionally.
 /// Unauthenticated requests to protected routes receive a `302 → /login`.
 pub async fn require_auth(request: Request, next: Next) -> Response {
+    // In local mode authentication is disabled entirely.
+    if crate::config::config().local_mode {
+        return next.run(request).await;
+    }
+
     let path = request.uri().path().to_owned();
 
     let is_public = path.starts_with("/api/")
