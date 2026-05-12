@@ -31,23 +31,23 @@ pub fn TransactionRow(
 
     rsx! {
         div {
-            style: "display: grid; grid-template-columns: 90px 1fr 72px 150px 100px; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid #f3f4f6;",
+            style: "display: grid; grid-template-columns: 90px 1fr 72px 150px 100px; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border-subtle);",
 
             // Date
             span {
-                style: "font-size: 0.8rem; color: #6b7280; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+                style: "font-size: 0.8rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
                 "{date_str}"
             }
 
             // Description
             span {
-                style: "font-size: 0.9rem; color: #111827; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+                style: "font-size: 0.9rem; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
                 "{transaction.description}"
             }
 
             // Source badge
             span {
-                style: "font-size: 0.7rem; color: #9ca3af; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+                style: "font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
                 "{transaction.source}"
             }
 
@@ -55,7 +55,7 @@ pub fn TransactionRow(
             if let Some(ref action) = classify_action {
                 // Show a select for classification / reclassification
                 select {
-                    style: "width: 100%; font-size: 0.8rem; border: 1px solid #d1d5db; border-radius: 6px; padding: 2px 4px; color: #374151; box-sizing: border-box;",
+                    style: "width: 100%; font-size: 0.8rem; border: 1px solid var(--border-input); border-radius: 6px; padding: 2px 4px; color: var(--text-secondary); box-sizing: border-box;",
                     onchange: {
                         let tx = transaction.clone();
                         let cats = action.categories.clone();

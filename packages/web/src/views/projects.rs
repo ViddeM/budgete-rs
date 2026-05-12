@@ -107,7 +107,7 @@ pub fn Projects() -> Element {
     rsx! {
         div {
             style: "padding: 32px; font-family: sans-serif;",
-            h1 { style: "margin: 0 0 28px; font-size: 1.5rem; color: #111827;", "Projects" }
+            h1 { style: "margin: 0 0 28px; font-size: 1.5rem; color: var(--text-primary);", "Projects" }
 
             div {
                 style: "display: flex; gap: 32px; align-items: flex-start;",
@@ -118,9 +118,9 @@ pub fn Projects() -> Element {
 
                     // Create form
                     div {
-                        style: "background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin-bottom: 20px;",
+                        style: "background: var(--bg-card-alt); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 20px;",
                         p {
-                            style: "font-size: 0.75rem; font-weight: 700; color: #6b7280; margin: 0 0 10px; text-transform: uppercase; letter-spacing: 0.05em;",
+                            style: "font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin: 0 0 10px; text-transform: uppercase; letter-spacing: 0.05em;",
                             "New project"
                         }
                         input {
@@ -128,14 +128,14 @@ pub fn Projects() -> Element {
                             value: new_name(),
                             oninput: move |e| new_name.set(e.value()),
                             placeholder: "Name",
-                            style: "width: 100%; padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.9rem; box-sizing: border-box; margin-bottom: 8px;",
+                            style: "width: 100%; padding: 7px 10px; border: 1px solid var(--border-input); border-radius: 8px; font-size: 0.9rem; box-sizing: border-box; margin-bottom: 8px;",
                         }
                         input {
                             r#type: "text",
                             value: new_desc(),
                             oninput: move |e| new_desc.set(e.value()),
                             placeholder: "Description (optional)",
-                            style: "width: 100%; padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.9rem; box-sizing: border-box; margin-bottom: 8px;",
+                            style: "width: 100%; padding: 7px 10px; border: 1px solid var(--border-input); border-radius: 8px; font-size: 0.9rem; box-sizing: border-box; margin-bottom: 8px;",
                         }
                         button {
                             onclick: create_project,
@@ -151,10 +151,10 @@ pub fn Projects() -> Element {
                     div {
                         style: "display: flex; flex-direction: column; gap: 8px;",
                         match projects_res() {
-                            None => rsx! { p { style: "color: #6b7280; font-size: 0.9rem;", "Loading…" } },
+                            None => rsx! { p { style: "color: var(--text-muted); font-size: 0.9rem;", "Loading…" } },
                             Some(Err(e)) => rsx! { p { style: "color: #dc2626;", "Error: {e}" } },
                             Some(Ok(_)) if projects.is_empty() => rsx! {
-                                p { style: "color: #6b7280; font-size: 0.9rem;", "No projects yet." }
+                                p { style: "color: var(--text-muted); font-size: 0.9rem;", "No projects yet." }
                             },
                             Some(Ok(_)) => rsx! {
                                 for project in projects.iter() {
@@ -163,10 +163,11 @@ pub fn Projects() -> Element {
                                         let pname = project.name.clone();
                                         let pdesc = project.description.clone();
                                         let is_selected = selected_id() == Some(pid);
-                                        let card_bg = if is_selected { "#1e293b" } else { "#fff" };
-                                        let card_border = if is_selected { "#1e293b" } else { "#e5e7eb" };
-                                        let name_color = if is_selected { "#f1f5f9" } else { "#111827" };
-                                        let desc_color = if is_selected { "#94a3b8" } else { "#6b7280" };
+                                        // Selected state reuses the fixed dark navbar color for visual continuity.
+                                        let card_bg = if is_selected { "#1e293b" } else { "var(--bg-card)" };
+                                        let card_border = if is_selected { "#1e293b" } else { "var(--border)" };
+                                        let name_color = if is_selected { "#f1f5f9" } else { "var(--text-primary)" };
+                                        let desc_color = if is_selected { "#94a3b8" } else { "var(--text-muted)" };
                                         rsx! {
                                             div {
                                                 key: "{pid}",
@@ -217,7 +218,7 @@ pub fn Projects() -> Element {
 
                     match selected_project.clone() {
                         None => rsx! {
-                            p { style: "color: #9ca3af; font-size: 0.95rem; padding: 24px 0;",
+                            p { style: "color: var(--text-dim); font-size: 0.95rem; padding: 24px 0;",
                                 "Select a project to manage its transactions."
                             }
                         },
@@ -227,18 +228,18 @@ pub fn Projects() -> Element {
                             div {
                                 style: "margin-bottom: 20px;",
                                 h2 {
-                                    style: "margin: 0 0 4px; font-size: 1.1rem; color: #111827;",
+                                    style: "margin: 0 0 4px; font-size: 1.1rem; color: var(--text-primary);",
                                     "{project.name}"
                                 }
                                 if !project.description.is_empty() {
                                     p {
-                                        style: "margin: 0 0 10px; font-size: 0.875rem; color: #6b7280;",
+                                        style: "margin: 0 0 10px; font-size: 0.875rem; color: var(--text-muted);",
                                         "{project.description}"
                                     }
                                 }
                                 div {
                                     style: "display: flex; gap: 20px; font-size: 0.85rem; flex-wrap: wrap;",
-                                    span { style: "color: #374151;", "{tx_count} transactions" }
+                                    span { style: "color: var(--text-secondary);", "{tx_count} transactions" }
                                     if total_expense > Decimal::ZERO {
                                         span {
                                             style: "color: #dc2626; font-weight: 600;",
@@ -256,11 +257,11 @@ pub fn Projects() -> Element {
 
                             // Transactions already in the project
                             match project_txs_res() {
-                                None => rsx! { p { style: "color: #6b7280;", "Loading…" } },
+                                None => rsx! { p { style: "color: var(--text-muted);", "Loading…" } },
                                 Some(Err(e)) => rsx! { p { style: "color: #dc2626;", "Error: {e}" } },
                                 Some(Ok(_)) if project_txs.is_empty() => rsx! {
                                     p {
-                                        style: "color: #6b7280; margin-bottom: 16px;",
+                                        style: "color: var(--text-muted); margin-bottom: 16px;",
                                         "No transactions yet — add some below."
                                     }
                                 },
@@ -286,18 +287,18 @@ pub fn Projects() -> Element {
                                                 rsx! {
                                                     div {
                                                         key: "{tid}",
-                                                        style: "display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;",
+                                                        style: "display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;",
                                                         span {
-                                                            style: "min-width: 90px; font-size: 0.78rem; color: #9ca3af;",
+                                                            style: "min-width: 90px; font-size: 0.78rem; color: var(--text-dim);",
                                                             "{date_str}"
                                                         }
                                                         span {
-                                                            style: "flex: 1; font-size: 0.88rem; color: #374151; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+                                                            style: "flex: 1; font-size: 0.88rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
                                                             "{desc}"
                                                         }
                                                         if let Some(cat) = cat_name {
                                                             span {
-                                                                style: "font-size: 0.75rem; color: #6b7280; white-space: nowrap;",
+                                                                style: "font-size: 0.75rem; color: var(--text-muted); white-space: nowrap;",
                                                                 "{cat}"
                                                             }
                                                         }
@@ -310,7 +311,7 @@ pub fn Projects() -> Element {
                                                                 let _ = remove_from_group(tid, project_id).await;
                                                                 project_txs_res.restart();
                                                             },
-                                                            style: "padding: 3px 10px; background: transparent; color: #6b7280; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-size: 0.75rem; white-space: nowrap; flex-shrink: 0;",
+                                                            style: "padding: 3px 10px; background: transparent; color: var(--text-muted); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 0.75rem; white-space: nowrap; flex-shrink: 0;",
                                                             "Remove"
                                                         }
                                                     }
@@ -327,7 +328,7 @@ pub fn Projects() -> Element {
                                     show_add.set(!show_add());
                                     add_search.set(String::new());
                                 },
-                                style: "padding: 7px 16px; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 500; margin-bottom: 12px;",
+                                style: "padding: 7px 16px; background: var(--bg-row-alt); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 500; margin-bottom: 12px;",
                                 if show_add() { "▲ Hide add panel" } else { "▼ Add transactions" }
                             }
 
@@ -338,11 +339,11 @@ pub fn Projects() -> Element {
                                     value: add_search(),
                                     oninput: move |e| add_search.set(e.value()),
                                     placeholder: "Search by description or date…",
-                                    style: "width: 100%; max-width: 400px; padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.9rem; box-sizing: border-box; margin-bottom: 10px;",
+                                    style: "width: 100%; max-width: 400px; padding: 7px 10px; border: 1px solid var(--border-input); border-radius: 8px; font-size: 0.9rem; box-sizing: border-box; margin-bottom: 10px;",
                                 }
                                 if filtered_available.is_empty() {
                                     p {
-                                        style: "color: #6b7280; font-size: 0.9rem;",
+                                        style: "color: var(--text-muted); font-size: 0.9rem;",
                                         if available_txs.is_empty() {
                                             "All transactions are already in this project."
                                         } else {
@@ -371,18 +372,18 @@ pub fn Projects() -> Element {
                                                 rsx! {
                                                     div {
                                                         key: "{tid}",
-                                                        style: "display: flex; align-items: center; gap: 10px; padding: 8px 14px; background: #fafafa; border: 1px solid #f3f4f6; border-radius: 8px;",
+                                                        style: "display: flex; align-items: center; gap: 10px; padding: 8px 14px; background: var(--bg-card-alt); border: 1px solid var(--border-subtle); border-radius: 8px;",
                                                         span {
-                                                            style: "min-width: 90px; font-size: 0.78rem; color: #9ca3af;",
+                                                            style: "min-width: 90px; font-size: 0.78rem; color: var(--text-dim);",
                                                             "{date_str}"
                                                         }
                                                         span {
-                                                            style: "flex: 1; font-size: 0.85rem; color: #374151; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+                                                            style: "flex: 1; font-size: 0.85rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
                                                             "{desc}"
                                                         }
                                                         if let Some(cat) = cat_name {
                                                             span {
-                                                                style: "font-size: 0.75rem; color: #6b7280; white-space: nowrap;",
+                                                                style: "font-size: 0.75rem; color: var(--text-muted); white-space: nowrap;",
                                                                 "{cat}"
                                                             }
                                                         }

@@ -97,7 +97,7 @@ fn DashboardContent(stats: DashboardStats) -> Element {
     rsx! {
         div {
             style: "padding: 32px; font-family: sans-serif;",
-            h1 { style: "margin: 0 0 24px; font-size: 1.5rem; color: #111827;", "Dashboard" }
+            h1 { style: "margin: 0 0 24px; font-size: 1.5rem; color: var(--text-primary);", "Dashboard" }
 
             div {
                 style: "display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 32px;",
@@ -128,7 +128,7 @@ fn DashboardContent(stats: DashboardStats) -> Element {
             }
 
             if !top5.is_empty() {
-                h2 { style: "font-size: 1rem; color: #374151; margin-bottom: 12px;", "Top categories this month" }
+                h2 { style: "font-size: 1rem; color: var(--text-secondary); margin-bottom: 12px;", "Top categories this month" }
                 div {
                     style: "display: flex; flex-direction: column; gap: 6px; max-width: 480px;",
                     for group in top5.iter() {
@@ -136,9 +136,9 @@ fn DashboardContent(stats: DashboardStats) -> Element {
                             let gid = group.id;
                             let has_subs = !group.subcategories.is_empty();
                             let row_style = if has_subs {
-                                "display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #f9fafb; border-radius: 8px; cursor: pointer;"
+                                "display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--bg-card-alt); border-radius: 8px; cursor: pointer;"
                             } else {
-                                "display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #f9fafb; border-radius: 8px;"
+                                "display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--bg-card-alt); border-radius: 8px;"
                             };
                             let arrow_transform = if expanded().contains(&gid) { "rotate(90deg)" } else { "rotate(0deg)" };
                             rsx! {
@@ -164,18 +164,18 @@ fn DashboardContent(stats: DashboardStats) -> Element {
                                                 style: "width: 12px; height: 12px; border-radius: 50%; background: {group.color};",
                                             }
                                             span {
-                                                style: "font-size: 0.9rem; color: #111827;",
+                                                style: "font-size: 0.9rem; color: var(--text-primary);",
                                                 "{group.name}"
                                             }
-                                                        if has_subs {
-                                                            span {
-                                                                style: "display: inline-block; font-size: 0.55rem; color: #9ca3af; transition: transform 0.15s ease; transform: {arrow_transform};",
-                                                                "▶"
-                                                            }
-                                                        }
+                                            if has_subs {
+                                                span {
+                                                    style: "display: inline-block; font-size: 0.55rem; color: var(--text-dim); transition: transform 0.15s ease; transform: {arrow_transform};",
+                                                    "▶"
+                                                }
+                                            }
                                         }
                                         span {
-                                            style: "font-weight: 600; color: #374151;",
+                                            style: "font-weight: 600; color: var(--text-secondary);",
                                             "{fmt_amount(group.total)}"
                                         }
                                     }
@@ -187,19 +187,19 @@ fn DashboardContent(stats: DashboardStats) -> Element {
                                             for sub in group.subcategories.iter() {
                                                 div {
                                                     key: "{sub.category_id}",
-                                                    style: "display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: #f3f4f6; border-radius: 6px;",
+                                                    style: "display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: var(--bg-row-alt); border-radius: 6px;",
                                                     span {
                                                         style: "display: flex; align-items: center; gap: 6px;",
                                                         span {
                                                             style: "width: 8px; height: 8px; border-radius: 50%; background: {sub.category_color};",
                                                         }
                                                         span {
-                                                            style: "font-size: 0.85rem; color: #374151;",
+                                                            style: "font-size: 0.85rem; color: var(--text-secondary);",
                                                             "{sub.category_name}"
                                                         }
                                                     }
                                                     span {
-                                                        style: "font-size: 0.85rem; font-weight: 500; color: #6b7280;",
+                                                        style: "font-size: 0.85rem; font-weight: 500; color: var(--text-muted);",
                                                         "{fmt_amount(sub.total)}"
                                                     }
                                                 }

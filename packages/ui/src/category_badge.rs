@@ -24,7 +24,7 @@ pub fn CategoryBadge(category: Category) -> Element {
 pub fn UnprocessedBadge() -> Element {
     rsx! {
         span {
-            style: "background-color: #e5e7eb; color: #6b7280; padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600;",
+            style: "background-color: var(--border); color: var(--text-muted); padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600;",
             "Unprocessed"
         }
     }

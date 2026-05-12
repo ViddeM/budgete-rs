@@ -3,7 +3,12 @@ use dioxus::prelude::*;
 /// Top navigation bar. Expects a `Route` enum that implements `Routable`.
 /// We keep this generic with `children` so the web crate can pass `Link` elements.
 #[component]
-pub fn Navbar(children: Element) -> Element {
+pub fn Navbar(
+    children: Element,
+    dark_mode: bool,
+    on_toggle: EventHandler<()>,
+) -> Element {
+    let icon = if dark_mode { "☀" } else { "☾" };
     rsx! {
         nav {
             style: "display: flex; align-items: center; gap: 24px; padding: 0 32px; height: 52px; background: #1e293b; color: #f1f5f9;",
@@ -12,6 +17,11 @@ pub fn Navbar(children: Element) -> Element {
                 "Budget"
             }
             {children}
+            button {
+                onclick: move |_| on_toggle.call(()),
+                style: "margin-left: auto; background: transparent; border: 1px solid #475569; color: #94a3b8; border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 0.9rem; flex-shrink: 0;",
+                "{icon}"
+            }
         }
     }
 }

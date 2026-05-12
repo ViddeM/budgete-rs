@@ -41,7 +41,7 @@ pub fn Upload() -> Element {
     rsx! {
         div {
             style: "padding: 32px; font-family: sans-serif; max-width: 560px;",
-            h1 { style: "margin: 0 0 24px; font-size: 1.5rem; color: #111827;", "Upload transactions" }
+            h1 { style: "margin: 0 0 24px; font-size: 1.5rem; color: var(--text-primary);", "Upload transactions" }
 
             div {
                 style: "display: flex; flex-direction: column; gap: 16px;",
@@ -49,11 +49,11 @@ pub fn Upload() -> Element {
                 // Source selector
                 div {
                     label {
-                        style: "display: block; font-size: 0.85rem; font-weight: 600; color: #374151; margin-bottom: 4px;",
+                        style: "display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;",
                         "Bank / Source"
                     }
                     select {
-                        style: "width: 100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.9rem; color: #111827;",
+                        style: "width: 100%; padding: 8px 10px; border: 1px solid var(--border-input); border-radius: 8px; font-size: 0.9rem; color: var(--text-primary);",
                         onchange: move |evt: Event<FormData>| {
                             source.set(match evt.value().as_str() {
                                 "nordea" => CsvSource::Nordea,
@@ -68,7 +68,7 @@ pub fn Upload() -> Element {
                 // File picker — triggers import on file selection
                 div {
                     label {
-                        style: "display: block; font-size: 0.85rem; font-weight: 600; color: #374151; margin-bottom: 4px;",
+                        style: "display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;",
                         "CSV file"
                     }
                     input {
@@ -79,7 +79,7 @@ pub fn Upload() -> Element {
                         onchange: on_file_change,
                     }
                     p {
-                        style: "margin: 4px 0 0; font-size: 0.78rem; color: #9ca3af;",
+                        style: "margin: 4px 0 0; font-size: 0.78rem; color: var(--text-dim);",
                         "Selecting a file will start the import automatically."
                     }
                 }

@@ -1,3 +1,35 @@
+/* ── CSS custom properties (design tokens) ───────────────────────────── */
+
+:root {
+    --bg-page:      #f8fafc;
+    --bg-card:      #ffffff;
+    --bg-card-alt:  #f9fafb;
+    --bg-row-alt:   #f3f4f6;
+    --border:       #e5e7eb;
+    --border-input: #d1d5db;
+    --border-subtle:#f3f4f6;
+    --text-primary: #111827;
+    --text-secondary: #374151;
+    --text-muted:   #6b7280;
+    --text-dim:     #9ca3af;
+}
+
+[data-theme="dark"] {
+    --bg-page:      #0f172a;
+    --bg-card:      #1e293b;
+    --bg-card-alt:  #162032;
+    --bg-row-alt:   #0f1b2d;
+    --border:       #334155;
+    --border-input: #475569;
+    --border-subtle:#1e293b;
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-muted:   #94a3b8;
+    --text-dim:     #64748b;
+}
+
+/* ── Base reset ──────────────────────────────────────────────────────── */
+
 *, *::before, *::after {
     box-sizing: border-box;
 }
@@ -6,8 +38,8 @@ html, body {
     margin: 0;
     padding: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background: #f8fafc;
-    color: #111827;
+    background: var(--bg-page);
+    color: var(--text-primary);
     font-size: 16px;
 }
 
@@ -23,6 +55,8 @@ button {
 input, select {
     font-family: inherit;
     outline: none;
+    background: var(--bg-card);
+    color: var(--text-primary);
 }
 
 input:focus, select:focus {
@@ -44,11 +78,10 @@ button:hover:not(:disabled):not(.btn-ghost):not(.btn-danger) {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
 }
 
-/* Ghost / outline buttons — fill background, darken border */
+/* Ghost / outline buttons — lighten + lift (same as solid buttons) */
 .btn-ghost:hover:not(:disabled) {
-    background-color: #f1f5f9 !important;
-    border-color: #94a3b8 !important;
-    color: #111827 !important;
+    filter: brightness(1.55);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
 }
 
 /* Danger / destructive buttons — light red fill, deepen border & text */
@@ -70,7 +103,7 @@ select {
 }
 
 select:hover:not(:focus) {
-    border-color: #9ca3af !important;
+    border-color: var(--text-dim) !important;
 }
 
 input[type="color"] {

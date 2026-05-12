@@ -115,35 +115,35 @@ pub fn Analytics() -> Element {
     rsx! {
         div {
             style: "padding: 32px; font-family: sans-serif;",
-            h1 { style: "margin: 0 0 24px; font-size: 1.5rem; color: #111827;", "Analytics" }
+            h1 { style: "margin: 0 0 24px; font-size: 1.5rem; color: var(--text-primary);", "Analytics" }
 
             // --- Filters ---
             div {
                 style: "display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; margin-bottom: 28px;",
 
                 div {
-                    label { style: "display: block; font-size: 0.8rem; color: #6b7280; margin-bottom: 4px;", "From" }
+                    label { style: "display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;", "From" }
                     input {
                         r#type: "date",
                         value: date_from(),
                         oninput: move |e| date_from.set(e.value()),
-                        style: "padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.9rem;",
+                        style: "padding: 7px 10px; border: 1px solid var(--border-input); border-radius: 8px; font-size: 0.9rem;",
                     }
                 }
                 div {
-                    label { style: "display: block; font-size: 0.8rem; color: #6b7280; margin-bottom: 4px;", "To" }
+                    label { style: "display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;", "To" }
                     input {
                         r#type: "date",
                         value: date_to(),
                         oninput: move |e| date_to.set(e.value()),
-                        style: "padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.9rem;",
+                        style: "padding: 7px 10px; border: 1px solid var(--border-input); border-radius: 8px; font-size: 0.9rem;",
                     }
                 }
                 if !groups.is_empty() {
                     div {
-                        label { style: "display: block; font-size: 0.8rem; color: #6b7280; margin-bottom: 4px;", "Project" }
+                        label { style: "display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;", "Project" }
                         select {
-                            style: "padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.9rem;",
+                            style: "padding: 7px 10px; border: 1px solid var(--border-input); border-radius: 8px; font-size: 0.9rem;",
                             onchange: move |e: Event<FormData>| {
                                 selected_group.set(Uuid::parse_str(&e.value()).ok());
                             },
@@ -157,18 +157,18 @@ pub fn Analytics() -> Element {
             }
 
             // --- Spending over time ---
-            h2 { style: "font-size: 1rem; color: #374151; margin-bottom: 12px;", "Monthly overview" }
+            h2 { style: "font-size: 1rem; color: var(--text-secondary); margin-bottom: 12px;", "Monthly overview" }
             match over_time_res() {
                 None => rsx! { p { "Loading…" } },
                 Some(Err(e)) => rsx! { p { style: "color: red;", "Error: {e}" } },
                 Some(Ok(rows)) if rows.is_empty() => rsx! {
-                    p { style: "color: #6b7280;", "No data for selected range." }
+                    p { style: "color: var(--text-muted);", "No data for selected range." }
                 },
                 Some(Ok(rows)) => rsx! {
                     div {
                         style: "display: flex; flex-direction: column; gap: 6px; max-width: 600px; margin-bottom: 28px;",
                         div {
-                            style: "display: grid; grid-template-columns: 1fr 1fr 1fr; font-size: 0.75rem; font-weight: 700; color: #9ca3af; text-transform: uppercase; padding: 4px 0; border-bottom: 2px solid #e5e7eb;",
+                            style: "display: grid; grid-template-columns: 1fr 1fr 1fr; font-size: 0.75rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; padding: 4px 0; border-bottom: 2px solid var(--border);",
                             span { "Period" }
                             span { style: "text-align: right;", "Expenses" }
                             span { style: "text-align: right;", "Income" }
@@ -176,8 +176,8 @@ pub fn Analytics() -> Element {
                         for row in rows.iter() {
                             div {
                                 key: "{row.period_label}",
-                                style: "display: grid; grid-template-columns: 1fr 1fr 1fr; font-size: 0.9rem; padding: 6px 0; border-bottom: 1px solid #f3f4f6;",
-                                span { style: "color: #111827;", "{row.period_label}" }
+                                style: "display: grid; grid-template-columns: 1fr 1fr 1fr; font-size: 0.9rem; padding: 6px 0; border-bottom: 1px solid var(--border-subtle);",
+                                span { style: "color: var(--text-primary);", "{row.period_label}" }
                                 span { style: "text-align: right; color: #dc2626; font-weight: 600;", "{fmt_amount(row.expenses)}" }
                                 span { style: "text-align: right; color: #16a34a; font-weight: 600;", "{fmt_amount(row.income)}" }
                             }
@@ -187,12 +187,12 @@ pub fn Analytics() -> Element {
             }
 
             // --- By category ---
-            h2 { style: "font-size: 1rem; color: #374151; margin-bottom: 12px;", "By category" }
+            h2 { style: "font-size: 1rem; color: var(--text-secondary); margin-bottom: 12px;", "By category" }
             match category_spend_res() {
                 None => rsx! { p { "Loading…" } },
                 Some(Err(e)) => rsx! { p { style: "color: red;", "Error: {e}" } },
                 Some(Ok(cats)) if cats.is_empty() => rsx! {
-                    p { style: "color: #6b7280;", "No categorised transactions in this range." }
+                    p { style: "color: var(--text-muted);", "No categorised transactions in this range." }
                 },
                 Some(Ok(cats)) => {
                     let cat_groups = build_groups(&cats);
@@ -233,35 +233,35 @@ pub fn Analytics() -> Element {
                                                         }
                                                     },
                                                     span {
-                                                        style: "display: flex; align-items: center; gap: 6px; font-size: 0.9rem; color: #111827;",
+                                                        style: "display: flex; align-items: center; gap: 6px; font-size: 0.9rem; color: var(--text-primary);",
                                                         span {
                                                             style: "width: 10px; height: 10px; border-radius: 50%; background: {group.color};",
                                                         }
                                                         "{group.name}"
-                                                                        if has_subs {
-                                                                            span {
-                                                                                style: "display: inline-block; font-size: 0.55rem; color: #9ca3af; margin-left: 2px; transition: transform 0.15s ease; transform: {arrow_transform};",
-                                                                                "▶"
-                                                                            }
-                                                                        }
+                                                        if has_subs {
+                                                            span {
+                                                                style: "display: inline-block; font-size: 0.55rem; color: var(--text-dim); margin-left: 2px; transition: transform 0.15s ease; transform: {arrow_transform};",
+                                                                "▶"
+                                                            }
+                                                        }
                                                     }
                                                     span {
-                                                        style: "font-weight: 600; font-size: 0.9rem; color: #374151;",
+                                                        style: "font-weight: 600; font-size: 0.9rem; color: var(--text-secondary);",
                                                         "{fmt_amount(group.total)}"
                                                     }
                                                 }
-                                                                // Parent proportional bar — tinted track + solid fill
-                                                                div {
-                                                                    style: "height: 8px; border-radius: 4px; position: relative; overflow: hidden;",
-                                                                    // Tinted track
-                                                                    div {
-                                                                        style: "position: absolute; inset: 0; background: {group.color}; opacity: 0.15;",
-                                                                    }
-                                                                    // Solid fill
-                                                                    div {
-                                                                        style: "position: absolute; top: 0; left: 0; bottom: 0; width: {pct:.1}%; background: {group.color}; border-radius: 4px;",
-                                                                    }
-                                                                }
+                                                // Parent proportional bar — tinted track + solid fill
+                                                div {
+                                                    style: "height: 8px; border-radius: 4px; position: relative; overflow: hidden;",
+                                                    // Tinted track
+                                                    div {
+                                                        style: "position: absolute; inset: 0; background: {group.color}; opacity: 0.15;",
+                                                    }
+                                                    // Solid fill
+                                                    div {
+                                                        style: "position: absolute; top: 0; left: 0; bottom: 0; width: {pct:.1}%; background: {group.color}; border-radius: 4px;",
+                                                    }
+                                                }
                                             }
 
                                             // Subcategory rows (when expanded)
@@ -280,27 +280,27 @@ pub fn Analytics() -> Element {
                                                                     div {
                                                                         style: "display: flex; justify-content: space-between;",
                                                                         span {
-                                                                            style: "display: flex; align-items: center; gap: 5px; font-size: 0.82rem; color: #6b7280;",
+                                                                            style: "display: flex; align-items: center; gap: 5px; font-size: 0.82rem; color: var(--text-muted);",
                                                                             span {
                                                                                 style: "width: 8px; height: 8px; border-radius: 50%; background: {sub.category_color};",
                                                                             }
                                                                             "{sub.category_name}"
                                                                         }
                                                                         span {
-                                                                            style: "font-size: 0.82rem; font-weight: 500; color: #9ca3af;",
+                                                                            style: "font-size: 0.82rem; font-weight: 500; color: var(--text-dim);",
                                                                             "{fmt_amount(sub.total)}"
                                                                         }
                                                                     }
-                                                                                    // Subcategory proportional bar
-                                                                                    div {
-                                                                                        style: "height: 5px; border-radius: 3px; position: relative; overflow: hidden;",
-                                                                                        div {
-                                                                                            style: "position: absolute; inset: 0; background: {sub.category_color}; opacity: 0.15;",
-                                                                                        }
-                                                                                        div {
-                                                                                            style: "position: absolute; top: 0; left: 0; bottom: 0; width: {sub_pct:.1}%; background: {sub.category_color}; border-radius: 3px;",
-                                                                                        }
-                                                                                    }
+                                                                    // Subcategory proportional bar
+                                                                    div {
+                                                                        style: "height: 5px; border-radius: 3px; position: relative; overflow: hidden;",
+                                                                        div {
+                                                                            style: "position: absolute; inset: 0; background: {sub.category_color}; opacity: 0.15;",
+                                                                        }
+                                                                        div {
+                                                                            style: "position: absolute; top: 0; left: 0; bottom: 0; width: {sub_pct:.1}%; background: {sub.category_color}; border-radius: 3px;",
+                                                                        }
+                                                                    }
                                                                 }
                                                             }
                                                         }
@@ -320,7 +320,7 @@ pub fn Analytics() -> Element {
             button {
                 onclick: move |_| show_transactions.set(!show_transactions()),
                 class: "btn-ghost",
-                style: "padding: 8px 16px; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; font-size: 0.85rem; margin-bottom: 16px;",
+                style: "padding: 8px 16px; background: var(--border); border: 1px solid var(--border-input); border-radius: 8px; cursor: pointer; font-size: 0.85rem; margin-bottom: 16px; color: var(--text-primary);",
                 if show_transactions() { "Hide transactions" } else { "Show all transactions" }
             }
 

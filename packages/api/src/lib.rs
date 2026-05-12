@@ -35,4 +35,5 @@ pub use server_fns::categories::*;
 pub use server_fns::dashboard::*;
 pub use server_fns::groups::*;
 pub use server_fns::local_mode::*;
+pub use server_fns::theme::*;
 pub use server_fns::transactions::*;

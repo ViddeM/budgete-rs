@@ -30,17 +30,17 @@ pub fn TransactionQueueCard(
 
     rsx! {
         div {
-            style: "background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 28px 32px; max-width: 560px;",
+            style: "background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 28px 32px; max-width: 560px;",
 
             // Meta line: date · source
             p {
-                style: "font-size: 0.78rem; color: #9ca3af; margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.05em;",
+                style: "font-size: 0.78rem; color: var(--text-dim); margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.05em;",
                 "{date_str} · {transaction.source}"
             }
 
             // Description
             p {
-                style: "font-size: 1.25rem; font-weight: 600; color: #111827; margin: 0 0 10px; line-height: 1.4;",
+                style: "font-size: 1.25rem; font-weight: 600; color: var(--text-primary); margin: 0 0 10px; line-height: 1.4;",
                 "{transaction.description}"
             }
 
@@ -53,12 +53,12 @@ pub fn TransactionQueueCard(
             // Category picker — subcategories only, grouped under parents
             if !has_any_subcats {
                 p {
-                    style: "font-size: 0.85rem; color: #9ca3af;",
+                    style: "font-size: 0.85rem; color: var(--text-dim);",
                     "Add subcategories to begin classifying."
                 }
             } else {
                 p {
-                    style: "font-size: 0.75rem; font-weight: 700; color: #6b7280; margin: 0 0 12px; text-transform: uppercase; letter-spacing: 0.05em;",
+                    style: "font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin: 0 0 12px; text-transform: uppercase; letter-spacing: 0.05em;",
                     "Assign category"
                 }
                 div {
@@ -77,7 +77,7 @@ pub fn TransactionQueueCard(
                                     div {
                                         // Parent label
                                         p {
-                                            style: "font-size: 0.72rem; font-weight: 700; color: #9ca3af; margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.05em;",
+                                            style: "font-size: 0.72rem; font-weight: 700; color: var(--text-dim); margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.05em;",
                                             "{parent.name}"
                                         }
                                         // Subcategory buttons

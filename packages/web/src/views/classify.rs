@@ -133,7 +133,7 @@ pub fn Classify() -> Element {
     rsx! {
         div {
             style: "padding: 32px; font-family: sans-serif; max-width: 960px;",
-            h1 { style: "margin: 0 0 28px; font-size: 1.5rem; color: #111827;", "Classify" }
+            h1 { style: "margin: 0 0 28px; font-size: 1.5rem; color: var(--text-primary);", "Classify" }
 
             div {
                 style: "display: flex; gap: 32px; align-items: flex-start;",
@@ -142,12 +142,12 @@ pub fn Classify() -> Element {
                 div {
                     style: "width: 340px; flex-shrink: 0;",
 
-                    h2 { style: "margin: 0 0 16px; font-size: 1rem; color: #374151; font-weight: 700;", "Categories" }
+                    h2 { style: "margin: 0 0 16px; font-size: 1rem; color: var(--text-secondary); font-weight: 700;", "Categories" }
 
                     // New top-level category form
                     div {
-                        style: "background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin-bottom: 20px;",
-                        p { style: "font-size: 0.75rem; font-weight: 700; color: #6b7280; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.05em;", "New category" }
+                        style: "background: var(--bg-card-alt); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 20px;",
+                        p { style: "font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.05em;", "New category" }
                         div {
                             style: "display: flex; gap: 8px; align-items: flex-end;",
                             div {
@@ -157,14 +157,14 @@ pub fn Classify() -> Element {
                                     value: new_cat_name(),
                                     oninput: move |e| new_cat_name.set(e.value()),
                                     placeholder: "e.g. Food",
-                                    style: "width: 100%; padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.9rem; box-sizing: border-box;",
+                                    style: "width: 100%; padding: 7px 10px; border: 1px solid var(--border-input); border-radius: 8px; font-size: 0.9rem; box-sizing: border-box;",
                                 }
                             }
                             input {
                                 r#type: "color",
                                 value: new_cat_color(),
                                 oninput: move |e| new_cat_color.set(e.value()),
-                                style: "width: 36px; height: 36px; flex-shrink: 0; padding: 2px; border: 1px solid #d1d5db; border-radius: 8px; cursor: pointer; appearance: none; -webkit-appearance: none;",
+                                style: "width: 36px; height: 36px; flex-shrink: 0; padding: 2px; border: 1px solid var(--border-input); border-radius: 8px; cursor: pointer; appearance: none; -webkit-appearance: none;",
                             }
                             button {
                                 onclick: create_cat,
@@ -181,7 +181,7 @@ pub fn Classify() -> Element {
                                 style: "width: 14px; height: 14px; cursor: pointer; accent-color: #1e293b;",
                             }
                             span {
-                                style: "font-size: 0.8rem; color: #6b7280; user-select: none;",
+                                style: "font-size: 0.8rem; color: var(--text-muted); user-select: none;",
                                 "Ignore in totals"
                             }
                         }
@@ -211,46 +211,46 @@ pub fn Classify() -> Element {
                                 rsx! {
                                     div {
                                         key: "{parent_id}",
-                                        style: "background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden;",
+                                        style: "background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden;",
 
                                         // ── Parent row ────────────────────
                                         if is_editing_parent {
                                             // Inline edit form
                                             div {
-                                                style: "padding: 10px 12px; background: #f9fafb; border-bottom: 1px solid #e5e7eb;",
-                                                                // Row 1: text input + color (top-level categories now also have a color)
-                                                                div {
-                                                                    style: "display: flex; gap: 8px; align-items: center;",
-                                                                    input {
-                                                                        r#type: "text",
-                                                                        value: edit_name(),
-                                                                        oninput: move |e| edit_name.set(e.value()),
-                                                                        style: "flex: 1; min-width: 0; padding: 5px 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.85rem; box-sizing: border-box;",
-                                                                    }
-                                                                    input {
-                                                                        r#type: "color",
-                                                                        value: edit_color(),
-                                                                        oninput: move |e| edit_color.set(e.value()),
-                                                                        style: "width: 32px; height: 32px; flex-shrink: 0; padding: 2px; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; appearance: none; -webkit-appearance: none;",
-                                                                    }
-                                                                 }
-                                                                // Row 2: ignored checkbox
-                                                                label {
-                                                                    style: "display: flex; align-items: center; gap: 6px; margin-top: 6px; cursor: pointer;",
-                                                                    input {
-                                                                        r#type: "checkbox",
-                                                                        checked: edit_ignored(),
-                                                                        oninput: move |e| edit_ignored.set(e.checked()),
-                                                                        style: "width: 14px; height: 14px; cursor: pointer; accent-color: #1e293b;",
-                                                                    }
-                                                                    span {
-                                                                        style: "font-size: 0.78rem; color: #6b7280; user-select: none;",
-                                                                        "Ignore in totals"
-                                                                    }
-                                                                }
-                                                                // Row 3: action buttons
-                                                                div {
-                                                                    style: "display: flex; gap: 6px; justify-content: flex-end; margin-top: 6px;",
+                                                style: "padding: 10px 12px; background: var(--bg-card-alt); border-bottom: 1px solid var(--border);",
+                                                // Row 1: text input + color
+                                                div {
+                                                    style: "display: flex; gap: 8px; align-items: center;",
+                                                    input {
+                                                        r#type: "text",
+                                                        value: edit_name(),
+                                                        oninput: move |e| edit_name.set(e.value()),
+                                                        style: "flex: 1; min-width: 0; padding: 5px 8px; border: 1px solid var(--border-input); border-radius: 6px; font-size: 0.85rem; box-sizing: border-box;",
+                                                    }
+                                                    input {
+                                                        r#type: "color",
+                                                        value: edit_color(),
+                                                        oninput: move |e| edit_color.set(e.value()),
+                                                        style: "width: 32px; height: 32px; flex-shrink: 0; padding: 2px; border: 1px solid var(--border-input); border-radius: 6px; cursor: pointer; appearance: none; -webkit-appearance: none;",
+                                                    }
+                                                }
+                                                // Row 2: ignored checkbox
+                                                label {
+                                                    style: "display: flex; align-items: center; gap: 6px; margin-top: 6px; cursor: pointer;",
+                                                    input {
+                                                        r#type: "checkbox",
+                                                        checked: edit_ignored(),
+                                                        oninput: move |e| edit_ignored.set(e.checked()),
+                                                        style: "width: 14px; height: 14px; cursor: pointer; accent-color: #1e293b;",
+                                                    }
+                                                    span {
+                                                        style: "font-size: 0.78rem; color: var(--text-muted); user-select: none;",
+                                                        "Ignore in totals"
+                                                    }
+                                                }
+                                                // Row 3: action buttons
+                                                div {
+                                                    style: "display: flex; gap: 6px; justify-content: flex-end; margin-top: 6px;",
                                                     button {
                                                         onclick: save_edit,
                                                         style: "padding: 5px 14px; background: #1e293b; color: #f1f5f9; border: none; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600;",
@@ -259,7 +259,7 @@ pub fn Classify() -> Element {
                                                     button {
                                                         onclick: move |_| { editing_id.set(None); edit_error.set(None); },
                                                         class: "btn-ghost",
-                                                        style: "padding: 5px 12px; background: transparent; color: #6b7280; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 0.8rem;",
+                                                        style: "padding: 5px 12px; background: transparent; color: var(--text-muted); border: 1px solid var(--border-input); border-radius: 6px; cursor: pointer; font-size: 0.8rem;",
                                                         "Cancel"
                                                     }
                                                 }
@@ -267,34 +267,34 @@ pub fn Classify() -> Element {
                                                     p { style: "color: #dc2626; font-size: 0.78rem; margin: 4px 0 0;", "{err}" }
                                                 }
                                             }
-                                                         } else {
-                                                            // Display row
-                                                            div {
-                                                                style: "display: flex; align-items: center; gap: 8px; padding: 10px 12px;",
-                                                                span {
-                                                                    style: "width: 12px; height: 12px; border-radius: 50%; background: {parent_color}; flex-shrink: 0;",
-                                                                }
-                                                                 span {
-                                                                    style: "flex: 1; font-size: 0.9rem; font-weight: 600; color: #111827;",
-                                                                    "{parent_name}"
-                                                                }
-                                                                if parent_ignored {
-                                                                    span {
-                                                                        style: "font-size: 0.68rem; color: #9ca3af; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 4px; padding: 1px 5px; flex-shrink: 0;",
-                                                                        "ignored"
-                                                                    }
-                                                                }
-                                                 button {
-                                                      onclick: move |_| {
-                                                         editing_id.set(Some(parent_id));
-                                                         edit_name.set(parent_name.clone());
-                                                         edit_color.set(parent_color.clone());
-                                                         edit_ignored.set(parent_ignored);
-                                                         editing_is_top_level.set(true);
-                                                         edit_error.set(None);
-                                                     },
+                                        } else {
+                                            // Display row
+                                            div {
+                                                style: "display: flex; align-items: center; gap: 8px; padding: 10px 12px;",
+                                                span {
+                                                    style: "width: 12px; height: 12px; border-radius: 50%; background: {parent_color}; flex-shrink: 0;",
+                                                }
+                                                span {
+                                                    style: "flex: 1; font-size: 0.9rem; font-weight: 600; color: var(--text-primary);",
+                                                    "{parent_name}"
+                                                }
+                                                if parent_ignored {
+                                                    span {
+                                                        style: "font-size: 0.68rem; color: var(--text-dim); background: var(--bg-row-alt); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; flex-shrink: 0;",
+                                                        "ignored"
+                                                    }
+                                                }
+                                                button {
+                                                    onclick: move |_| {
+                                                        editing_id.set(Some(parent_id));
+                                                        edit_name.set(parent_name.clone());
+                                                        edit_color.set(parent_color.clone());
+                                                        edit_ignored.set(parent_ignored);
+                                                        editing_is_top_level.set(true);
+                                                        edit_error.set(None);
+                                                    },
                                                     class: "btn-ghost",
-                                                    style: "padding: 3px 10px; background: transparent; color: #6b7280; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-size: 0.75rem;",
+                                                    style: "padding: 3px 10px; background: transparent; color: var(--text-muted); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 0.75rem;",
                                                     "Edit"
                                                 }
                                                 button {
@@ -322,11 +322,11 @@ pub fn Classify() -> Element {
                                                 rsx! {
                                                     div {
                                                         key: "{sub_id}",
-                                                        style: "border-top: 1px solid #f3f4f6;",
+                                                        style: "border-top: 1px solid var(--border-subtle);",
 
                                                         if is_editing_sub {
                                                             div {
-                                                                style: "padding: 8px 12px 8px 28px; background: #f9fafb;",
+                                                                style: "padding: 8px 12px 8px 28px; background: var(--bg-card-alt);",
                                                                 // Row 1: text input + color
                                                                 div {
                                                                     style: "display: flex; gap: 8px; align-items: center;",
@@ -334,32 +334,32 @@ pub fn Classify() -> Element {
                                                                         r#type: "text",
                                                                         value: edit_name(),
                                                                         oninput: move |e| edit_name.set(e.value()),
-                                                                        style: "flex: 1; min-width: 0; padding: 5px 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.82rem; box-sizing: border-box;",
+                                                                        style: "flex: 1; min-width: 0; padding: 5px 8px; border: 1px solid var(--border-input); border-radius: 6px; font-size: 0.82rem; box-sizing: border-box;",
                                                                     }
                                                                     input {
                                                                         r#type: "color",
                                                                         value: edit_color(),
                                                                         oninput: move |e| edit_color.set(e.value()),
-                                                                        style: "width: 32px; height: 32px; flex-shrink: 0; padding: 2px; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; appearance: none; -webkit-appearance: none;",
+                                                                        style: "width: 32px; height: 32px; flex-shrink: 0; padding: 2px; border: 1px solid var(--border-input); border-radius: 6px; cursor: pointer; appearance: none; -webkit-appearance: none;",
                                                                     }
-                                                                                }
-                                                                                // Row 2: ignored checkbox
-                                                                                label {
-                                                                                    style: "display: flex; align-items: center; gap: 6px; margin-top: 6px; cursor: pointer;",
-                                                                                    input {
-                                                                                        r#type: "checkbox",
-                                                                                        checked: edit_ignored(),
-                                                                                        oninput: move |e| edit_ignored.set(e.checked()),
-                                                                                        style: "width: 14px; height: 14px; cursor: pointer; accent-color: #1e293b;",
-                                                                                    }
-                                                                                    span {
-                                                                                        style: "font-size: 0.78rem; color: #6b7280; user-select: none;",
-                                                                                        "Ignore in totals"
-                                                                                    }
-                                                                                }
-                                                                                // Row 3: action buttons
-                                                                                div {
-                                                                                    style: "display: flex; gap: 6px; justify-content: flex-end; margin-top: 6px;",
+                                                                }
+                                                                // Row 2: ignored checkbox
+                                                                label {
+                                                                    style: "display: flex; align-items: center; gap: 6px; margin-top: 6px; cursor: pointer;",
+                                                                    input {
+                                                                        r#type: "checkbox",
+                                                                        checked: edit_ignored(),
+                                                                        oninput: move |e| edit_ignored.set(e.checked()),
+                                                                        style: "width: 14px; height: 14px; cursor: pointer; accent-color: #1e293b;",
+                                                                    }
+                                                                    span {
+                                                                        style: "font-size: 0.78rem; color: var(--text-muted); user-select: none;",
+                                                                        "Ignore in totals"
+                                                                    }
+                                                                }
+                                                                // Row 3: action buttons
+                                                                div {
+                                                                    style: "display: flex; gap: 6px; justify-content: flex-end; margin-top: 6px;",
                                                                     button {
                                                                         onclick: save_edit,
                                                                         style: "padding: 5px 14px; background: #1e293b; color: #f1f5f9; border: none; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: 600;",
@@ -368,7 +368,7 @@ pub fn Classify() -> Element {
                                                                     button {
                                                                         onclick: move |_| { editing_id.set(None); edit_error.set(None); },
                                                                         class: "btn-ghost",
-                                                                        style: "padding: 5px 12px; background: transparent; color: #6b7280; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 0.78rem;",
+                                                                        style: "padding: 5px 12px; background: transparent; color: var(--text-muted); border: 1px solid var(--border-input); border-radius: 6px; cursor: pointer; font-size: 0.78rem;",
                                                                         "Cancel"
                                                                     }
                                                                 }
@@ -382,27 +382,27 @@ pub fn Classify() -> Element {
                                                                 span {
                                                                     style: "width: 10px; height: 10px; border-radius: 50%; background: {sub_color}; flex-shrink: 0;",
                                                                 }
-                                                                                span {
-                                                                                    style: "flex: 1; font-size: 0.85rem; color: #374151;",
-                                                                                    "{sub_name}"
-                                                                                }
-                                                                                if sub_ignored {
-                                                                                    span {
-                                                                                        style: "font-size: 0.68rem; color: #9ca3af; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 4px; padding: 1px 5px; flex-shrink: 0;",
-                                                                                        "ignored"
-                                                                                    }
-                                                                                }
-                                                                                button {
-                                                                                    onclick: move |_| {
-                                                                                        editing_id.set(Some(sub_id));
-                                                                                        edit_name.set(sub_name.clone());
-                                                                                        edit_color.set(sub_color.clone());
-                                                                                        edit_ignored.set(sub_ignored);
-                                                                                        editing_is_top_level.set(false);
-                                                                                        edit_error.set(None);
-                                                                                    },
+                                                                span {
+                                                                    style: "flex: 1; font-size: 0.85rem; color: var(--text-secondary);",
+                                                                    "{sub_name}"
+                                                                }
+                                                                if sub_ignored {
+                                                                    span {
+                                                                        style: "font-size: 0.68rem; color: var(--text-dim); background: var(--bg-row-alt); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; flex-shrink: 0;",
+                                                                        "ignored"
+                                                                    }
+                                                                }
+                                                                button {
+                                                                    onclick: move |_| {
+                                                                        editing_id.set(Some(sub_id));
+                                                                        edit_name.set(sub_name.clone());
+                                                                        edit_color.set(sub_color.clone());
+                                                                        edit_ignored.set(sub_ignored);
+                                                                        editing_is_top_level.set(false);
+                                                                        edit_error.set(None);
+                                                                    },
                                                                     class: "btn-ghost",
-                                                                    style: "padding: 2px 8px; background: transparent; color: #6b7280; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-size: 0.72rem;",
+                                                                    style: "padding: 2px 8px; background: transparent; color: var(--text-muted); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 0.72rem;",
                                                                     "Edit"
                                                                 }
                                                                 button {
@@ -424,7 +424,7 @@ pub fn Classify() -> Element {
 
                                         // ── Add subcategory ───────────────
                                         div {
-                                            style: "border-top: 1px solid #f3f4f6; padding: 6px 12px 6px 28px;",
+                                            style: "border-top: 1px solid var(--border-subtle); padding: 6px 12px 6px 28px;",
 
                                             if is_adding_sub {
                                                 div {
@@ -436,32 +436,32 @@ pub fn Classify() -> Element {
                                                             value: new_sub_name(),
                                                             oninput: move |e| new_sub_name.set(e.value()),
                                                             placeholder: "Subcategory name",
-                                                            style: "flex: 1; min-width: 0; padding: 5px 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.82rem; box-sizing: border-box;",
+                                                            style: "flex: 1; min-width: 0; padding: 5px 8px; border: 1px solid var(--border-input); border-radius: 6px; font-size: 0.82rem; box-sizing: border-box;",
                                                         }
                                                         input {
                                                             r#type: "color",
                                                             value: new_sub_color(),
                                                             oninput: move |e| new_sub_color.set(e.value()),
-                                                            style: "width: 32px; height: 32px; flex-shrink: 0; padding: 2px; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; appearance: none; -webkit-appearance: none;",
+                                                            style: "width: 32px; height: 32px; flex-shrink: 0; padding: 2px; border: 1px solid var(--border-input); border-radius: 6px; cursor: pointer; appearance: none; -webkit-appearance: none;",
                                                         }
-                                                                    }
-                                                                    // Row 1.5: ignored checkbox
-                                                                    label {
-                                                                        style: "display: flex; align-items: center; gap: 6px; margin: 4px 0 2px; cursor: pointer;",
-                                                                        input {
-                                                                            r#type: "checkbox",
-                                                                            checked: new_sub_ignored(),
-                                                                            oninput: move |e| new_sub_ignored.set(e.checked()),
-                                                                            style: "width: 14px; height: 14px; cursor: pointer; accent-color: #1e293b;",
-                                                                        }
-                                                                        span {
-                                                                            style: "font-size: 0.78rem; color: #6b7280; user-select: none;",
-                                                                            "Ignore in totals"
-                                                                        }
-                                                                    }
-                                                                    // Row 2: action buttons
-                                                                    div {
-                                                                        style: "display: flex; gap: 6px; justify-content: flex-end; margin-top: 2px;",
+                                                    }
+                                                    // Row 1.5: ignored checkbox
+                                                    label {
+                                                        style: "display: flex; align-items: center; gap: 6px; margin: 4px 0 2px; cursor: pointer;",
+                                                        input {
+                                                            r#type: "checkbox",
+                                                            checked: new_sub_ignored(),
+                                                            oninput: move |e| new_sub_ignored.set(e.checked()),
+                                                            style: "width: 14px; height: 14px; cursor: pointer; accent-color: #1e293b;",
+                                                        }
+                                                        span {
+                                                            style: "font-size: 0.78rem; color: var(--text-muted); user-select: none;",
+                                                            "Ignore in totals"
+                                                        }
+                                                    }
+                                                    // Row 2: action buttons
+                                                    div {
+                                                        style: "display: flex; gap: 6px; justify-content: flex-end; margin-top: 2px;",
                                                         button {
                                                             onclick: create_sub,
                                                             style: "padding: 5px 14px; background: #1e293b; color: #f1f5f9; border: none; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: 600;",
@@ -470,7 +470,7 @@ pub fn Classify() -> Element {
                                                         button {
                                                             onclick: move |_| { adding_sub_for.set(None); sub_error.set(None); },
                                                             class: "btn-ghost",
-                                                            style: "padding: 5px 12px; background: transparent; color: #6b7280; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 0.78rem;",
+                                                            style: "padding: 5px 12px; background: transparent; color: var(--text-muted); border: 1px solid var(--border-input); border-radius: 6px; cursor: pointer; font-size: 0.78rem;",
                                                             "Cancel"
                                                         }
                                                     }
@@ -486,7 +486,7 @@ pub fn Classify() -> Element {
                                                         sub_error.set(None);
                                                     },
                                                     class: "btn-ghost",
-                                                    style: "background: transparent; border: none; color: #6b7280; font-size: 0.78rem; cursor: pointer; padding: 4px 0;",
+                                                    style: "background: transparent; border: none; color: var(--text-muted); font-size: 0.78rem; cursor: pointer; padding: 4px 0;",
                                                     "+ Add subcategory"
                                                 }
                                             }
@@ -507,7 +507,7 @@ pub fn Classify() -> Element {
                             style: "margin-bottom: 12px;",
                             button {
                                 onclick: on_undo,
-                                style: "padding: 6px 14px; background: transparent; color: #374151; border: 1px solid #d1d5db; border-radius: 8px; cursor: pointer; font-size: 0.82rem; font-weight: 500;",
+                                style: "padding: 6px 14px; background: transparent; color: var(--text-secondary); border: 1px solid var(--border-input); border-radius: 8px; cursor: pointer; font-size: 0.82rem; font-weight: 500;",
                                 "↩ Undo"
                             }
                         }
@@ -520,7 +520,7 @@ pub fn Classify() -> Element {
                             if state.remaining == 0 {
                                 rsx! {
                                     p {
-                                        style: "color: #6b7280; padding: 16px 0;",
+                                        style: "color: var(--text-muted); padding: 16px 0;",
                                         "All transactions classified."
                                     }
                                 }
@@ -529,7 +529,7 @@ pub fn Classify() -> Element {
                                 let plural = if remaining == 1 { "" } else { "s" };
                                 rsx! {
                                     p {
-                                        style: "font-size: 0.85rem; color: #6b7280; margin: 0 0 16px;",
+                                        style: "font-size: 0.85rem; color: var(--text-muted); margin: 0 0 16px;",
                                         "{remaining} transaction{plural} remaining"
                                     }
                                     if let Some(tx) = state.next {
@@ -539,7 +539,7 @@ pub fn Classify() -> Element {
                                             on_classify: EventHandler::new(on_classify),
                                         }
                                     }
-                // ── Upcoming preview ──────────────────
+                                    // ── Upcoming preview ──────────────────
                                     if !state.upcoming.is_empty() {
                                         div {
                                             style: "margin-top: 12px; display: flex; flex-direction: column; gap: 1px; opacity: 0.45; pointer-events: none; user-select: none;",
@@ -554,13 +554,13 @@ pub fn Classify() -> Element {
                                                     rsx! {
                                                         div {
                                                             key: "{tx.id}",
-                                                            style: "display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;",
+                                                            style: "display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;",
                                                             span {
-                                                                style: "min-width: 86px; font-size: 0.78rem; color: #9ca3af;",
+                                                                style: "min-width: 86px; font-size: 0.78rem; color: var(--text-dim);",
                                                                 "{date_str}"
                                                             }
                                                             span {
-                                                                style: "flex: 1; font-size: 0.88rem; color: #374151; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+                                                                style: "flex: 1; font-size: 0.88rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
                                                                 "{tx.description}"
                                                             }
                                                             span {

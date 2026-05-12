@@ -1,3 +1,5 @@
+use api::get_theme;
+use dioxus::document::eval;
 use dioxus::prelude::*;
 use views::{Analytics, Classify, Dashboard, Login, Projects, Transactions, Upload};
 
@@ -76,6 +78,28 @@ fn main() {
 
 #[component]
 fn App() -> Element {
+    // Read initial theme from cookie on the server so SSR renders the correct
+    // theme — the serialised value is sent to the client so the first
+    // hydration render is also consistent (no flash).
+    let theme_res = use_server_future(get_theme)?;
+    let initial_dark = theme_res()
+        .and_then(|r| r.ok())
+        .map(|s| s == "dark")
+        .unwrap_or(false);
+
+    let dark_mode = use_signal(|| initial_dark);
+    use_context_provider(|| dark_mode);
+
+    // Sync data-theme on <html> and write the cookie whenever the signal changes.
+    // This only runs in the browser (use_effect is client-only).
+    use_effect(move || {
+        let theme = if dark_mode() { "dark" } else { "light" };
+        eval(&format!(
+            "document.documentElement.setAttribute('data-theme','{theme}');\
+             document.cookie='theme={theme};Path=/;Max-Age=31536000;SameSite=Lax';"
+        ));
+    });
+
     rsx! {
         document::Link { rel: "icon", href: FAVICON }
         document::Link { rel: "stylesheet", href: MAIN_CSS }
@@ -85,8 +109,12 @@ fn App() -> Element {
 
 #[component]
 fn AppLayout() -> Element {
+    let mut dark_mode = use_context::<Signal<bool>>();
+
     rsx! {
         ui::Navbar {
+            dark_mode: dark_mode(),
+            on_toggle: move |_| *dark_mode.write() = !dark_mode(),
             Link {
                 to: Route::Dashboard {},
                 active_class: "nav-active",
@@ -125,7 +153,7 @@ fn AppLayout() -> Element {
             }
             a {
                 href: "/api/auth/logout",
-                style: "color: #94a3b8; text-decoration: none; font-size: 0.9rem; margin-left: auto;",
+                style: "color: #94a3b8; text-decoration: none; font-size: 0.9rem;",
                 "Log out"
             }
         }
