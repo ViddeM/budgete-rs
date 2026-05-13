@@ -106,53 +106,50 @@ pub fn Projects() -> Element {
 
     rsx! {
         div {
-            style: "padding: 32px; font-family: sans-serif;",
-            h1 { style: "margin: 0 0 28px; font-size: 1.5rem; color: var(--text-primary);", "Projects" }
+            class: "view",
+            h1 { class: "view__title", style: "margin-bottom: 28px;", "Projects" }
 
             div {
-                style: "display: flex; gap: 32px; align-items: flex-start;",
+                class: "two-col",
 
                 // ── Left column: project list + create ────────────────────────
                 div {
-                    style: "width: 280px; flex-shrink: 0;",
+                    class: "projects-col-left",
 
                     // Create form
                     div {
-                        style: "background: var(--bg-card-alt); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 20px;",
-                        p {
-                            style: "font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin: 0 0 10px; text-transform: uppercase; letter-spacing: 0.05em;",
-                            "New project"
-                        }
+                        class: "form-card",
+                        p { class: "form-card__title", style: "margin-bottom: 10px;", "New project" }
                         input {
                             r#type: "text",
                             value: new_name(),
                             oninput: move |e| new_name.set(e.value()),
                             placeholder: "Name",
-                            style: "width: 100%; padding: 7px 10px; border: 1px solid var(--border-input); border-radius: 8px; font-size: 0.9rem; box-sizing: border-box; margin-bottom: 8px;",
+                            class: "input-std input-std--full input-std--mb",
                         }
                         input {
                             r#type: "text",
                             value: new_desc(),
                             oninput: move |e| new_desc.set(e.value()),
                             placeholder: "Description (optional)",
-                            style: "width: 100%; padding: 7px 10px; border: 1px solid var(--border-input); border-radius: 8px; font-size: 0.9rem; box-sizing: border-box; margin-bottom: 8px;",
+                            class: "input-std input-std--full input-std--mb",
                         }
                         button {
                             onclick: create_project,
-                            style: "width: 100%; padding: 8px; background: #1e293b; color: #f1f5f9; border: none; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600;",
+                            class: "btn-primary btn-primary--full",
                             "Create"
                         }
                         if let Some(err) = create_error() {
-                            p { style: "color: #dc2626; font-size: 0.8rem; margin: 6px 0 0;", "{err}" }
+                            p { class: "form-error", "{err}" }
                         }
                     }
 
                     // Project cards
                     div {
-                        style: "display: flex; flex-direction: column; gap: 8px;",
+                        class: "project-cards",
                         match projects_res() {
                             None => rsx! { p { style: "color: var(--text-muted); font-size: 0.9rem;", "Loading…" } },
-                            Some(Err(e)) => rsx! { p { style: "color: #dc2626;", "Error: {e}" } },
+                            Some(Err(e)) => rsx! { p { class: "text-error", "Error: {e}" } },
                             Some(Ok(_)) if projects.is_empty() => rsx! {
                                 p { style: "color: var(--text-muted); font-size: 0.9rem;", "No projects yet." }
                             },
@@ -163,35 +160,27 @@ pub fn Projects() -> Element {
                                         let pname = project.name.clone();
                                         let pdesc = project.description.clone();
                                         let is_selected = selected_id() == Some(pid);
-                                        // Selected state reuses the fixed dark navbar color for visual continuity.
-                                        let card_bg = if is_selected { "#1e293b" } else { "var(--bg-card)" };
-                                        let card_border = if is_selected { "#1e293b" } else { "var(--border)" };
-                                        let name_color = if is_selected { "#f1f5f9" } else { "var(--text-primary)" };
-                                        let desc_color = if is_selected { "#94a3b8" } else { "var(--text-muted)" };
+                                        let card_class = if is_selected {
+                                            "project-card project-card--selected"
+                                        } else {
+                                            "project-card"
+                                        };
                                         rsx! {
                                             div {
                                                 key: "{pid}",
-                                                style: "background: {card_bg}; border: 1px solid {card_border}; border-radius: 10px; display: flex; align-items: center; overflow: hidden;",
-                                                // Clickable name area
+                                                class: "{card_class}",
                                                 div {
-                                                    style: "flex: 1; padding: 11px 14px; cursor: pointer; min-width: 0;",
+                                                    class: "project-card__body",
                                                     onclick: move |_| {
                                                         selected_id.set(Some(pid));
                                                         show_add.set(false);
                                                         add_search.set(String::new());
                                                     },
-                                                    span {
-                                                        style: "display: block; font-size: 0.9rem; font-weight: 600; color: {name_color};",
-                                                        "{pname}"
-                                                    }
+                                                    span { class: "project-card__name", "{pname}" }
                                                     if !pdesc.is_empty() {
-                                                        span {
-                                                            style: "display: block; font-size: 0.78rem; color: {desc_color}; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
-                                                            "{pdesc}"
-                                                        }
+                                                        span { class: "project-card__desc", "{pdesc}" }
                                                     }
                                                 }
-                                                // Delete button (sibling — no bubbling issue)
                                                 button {
                                                     onclick: move |_| async move {
                                                         let _ = delete_group(pid).await;
@@ -200,7 +189,7 @@ pub fn Projects() -> Element {
                                                         }
                                                         projects_res.restart();
                                                     },
-                                                    style: "background: transparent; border: none; border-left: 1px solid {card_border}; color: #dc2626; cursor: pointer; font-size: 1rem; padding: 0 12px; align-self: stretch; flex-shrink: 0;",
+                                                    class: "project-card__delete",
                                                     "×"
                                                 }
                                             }
@@ -214,7 +203,7 @@ pub fn Projects() -> Element {
 
                 // ── Right panel: selected project ─────────────────────────────
                 div {
-                    style: "flex: 1; min-width: 0;",
+                    class: "two-col__right",
 
                     match selected_project.clone() {
                         None => rsx! {
@@ -238,19 +227,13 @@ pub fn Projects() -> Element {
                                     }
                                 }
                                 div {
-                                    style: "display: flex; gap: 20px; font-size: 0.85rem; flex-wrap: wrap;",
+                                    class: "project-stats",
                                     span { style: "color: var(--text-secondary);", "{tx_count} transactions" }
                                     if total_expense > Decimal::ZERO {
-                                        span {
-                                            style: "color: #dc2626; font-weight: 600;",
-                                            "−{fmt_amount(total_expense)}"
-                                        }
+                                        span { style: "color: #dc2626; font-weight: 600;", "−{fmt_amount(total_expense)}" }
                                     }
                                     if total_income > Decimal::ZERO {
-                                        span {
-                                            style: "color: #16a34a; font-weight: 600;",
-                                            "+{fmt_amount(total_income)}"
-                                        }
+                                        span { style: "color: #16a34a; font-weight: 600;", "+{fmt_amount(total_income)}" }
                                     }
                                 }
                             }
@@ -258,7 +241,7 @@ pub fn Projects() -> Element {
                             // Transactions already in the project
                             match project_txs_res() {
                                 None => rsx! { p { style: "color: var(--text-muted);", "Loading…" } },
-                                Some(Err(e)) => rsx! { p { style: "color: #dc2626;", "Error: {e}" } },
+                                Some(Err(e)) => rsx! { p { class: "text-error", "Error: {e}" } },
                                 Some(Ok(_)) if project_txs.is_empty() => rsx! {
                                     p {
                                         style: "color: var(--text-muted); margin-bottom: 16px;",
@@ -267,7 +250,7 @@ pub fn Projects() -> Element {
                                 },
                                 Some(Ok(_)) => rsx! {
                                     div {
-                                        style: "display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px;",
+                                        class: "project-tx-list",
                                         for tx in project_txs.iter() {
                                             {
                                                 let tid = tx.id;
@@ -276,34 +259,25 @@ pub fn Projects() -> Element {
                                                     .map(|d| d.format("%Y-%m-%d").to_string())
                                                     .unwrap_or_else(|| "Pending".to_string());
                                                 let amount_str = fmt_tx_amount(tx.amount, &tx.currency);
-                                                let amount_color = if tx.amount >= Decimal::ZERO {
-                                                    "#16a34a"
-                                                } else {
-                                                    "#dc2626"
-                                                };
+                                                let amount_color = if tx.amount >= Decimal::ZERO { "#16a34a" } else { "#dc2626" };
                                                 let desc = tx.description.clone();
-                                                let cat_name =
-                                                    tx.category.as_ref().map(|c| c.name.clone());
+                                                let cat_name = tx.category.as_ref().map(|c| c.name.clone());
                                                 rsx! {
                                                     div {
                                                         key: "{tid}",
-                                                        style: "display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;",
+                                                        class: "project-tx-row",
+                                                        span { class: "project-row__date", "{date_str}" }
                                                         span {
-                                                            style: "min-width: 90px; font-size: 0.78rem; color: var(--text-dim);",
-                                                            "{date_str}"
-                                                        }
-                                                        span {
-                                                            style: "flex: 1; font-size: 0.88rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+                                                            class: "project-row__desc",
+                                                            style: "font-size: 0.88rem; color: var(--text-secondary);",
                                                             "{desc}"
                                                         }
                                                         if let Some(cat) = cat_name {
-                                                            span {
-                                                                style: "font-size: 0.75rem; color: var(--text-muted); white-space: nowrap;",
-                                                                "{cat}"
-                                                            }
+                                                            span { class: "project-row__cat", "{cat}" }
                                                         }
                                                         span {
-                                                            style: "font-size: 0.88rem; font-weight: 600; color: {amount_color}; white-space: nowrap;",
+                                                            class: "project-row__amount",
+                                                            style: "font-size: 0.88rem; color: {amount_color};",
                                                             "{amount_str}"
                                                         }
                                                         button {
@@ -311,7 +285,7 @@ pub fn Projects() -> Element {
                                                                 let _ = remove_from_group(tid, project_id).await;
                                                                 project_txs_res.restart();
                                                             },
-                                                            style: "padding: 3px 10px; background: transparent; color: var(--text-muted); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 0.75rem; white-space: nowrap; flex-shrink: 0;",
+                                                            class: "btn-ghost btn-ghost--sm",
                                                             "Remove"
                                                         }
                                                     }
@@ -328,18 +302,18 @@ pub fn Projects() -> Element {
                                     show_add.set(!show_add());
                                     add_search.set(String::new());
                                 },
-                                style: "padding: 7px 16px; background: var(--bg-row-alt); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 500; margin-bottom: 12px;",
+                                class: "btn-toggle",
                                 if show_add() { "▲ Hide add panel" } else { "▼ Add transactions" }
                             }
 
                             if show_add() {
-                                // Search input
                                 input {
                                     r#type: "text",
                                     value: add_search(),
                                     oninput: move |e| add_search.set(e.value()),
                                     placeholder: "Search by description or date…",
-                                    style: "width: 100%; max-width: 400px; padding: 7px 10px; border: 1px solid var(--border-input); border-radius: 8px; font-size: 0.9rem; box-sizing: border-box; margin-bottom: 10px;",
+                                    class: "input-std",
+                                    style: "width: 100%; max-width: 400px; margin-bottom: 10px;",
                                 }
                                 if filtered_available.is_empty() {
                                     p {
@@ -352,7 +326,7 @@ pub fn Projects() -> Element {
                                     }
                                 } else {
                                     div {
-                                        style: "display: flex; flex-direction: column; gap: 4px; max-height: 480px; overflow-y: auto;",
+                                        class: "project-available",
                                         for tx in filtered_available.iter() {
                                             {
                                                 let tid = tx.id;
@@ -361,34 +335,25 @@ pub fn Projects() -> Element {
                                                     .map(|d| d.format("%Y-%m-%d").to_string())
                                                     .unwrap_or_else(|| "Pending".to_string());
                                                 let amount_str = fmt_tx_amount(tx.amount, &tx.currency);
-                                                let amount_color = if tx.amount >= Decimal::ZERO {
-                                                    "#16a34a"
-                                                } else {
-                                                    "#dc2626"
-                                                };
+                                                let amount_color = if tx.amount >= Decimal::ZERO { "#16a34a" } else { "#dc2626" };
                                                 let desc = tx.description.clone();
-                                                let cat_name =
-                                                    tx.category.as_ref().map(|c| c.name.clone());
+                                                let cat_name = tx.category.as_ref().map(|c| c.name.clone());
                                                 rsx! {
                                                     div {
                                                         key: "{tid}",
-                                                        style: "display: flex; align-items: center; gap: 10px; padding: 8px 14px; background: var(--bg-card-alt); border: 1px solid var(--border-subtle); border-radius: 8px;",
+                                                        class: "project-add-row",
+                                                        span { class: "project-row__date", "{date_str}" }
                                                         span {
-                                                            style: "min-width: 90px; font-size: 0.78rem; color: var(--text-dim);",
-                                                            "{date_str}"
-                                                        }
-                                                        span {
-                                                            style: "flex: 1; font-size: 0.85rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+                                                            class: "project-row__desc",
+                                                            style: "font-size: 0.85rem; color: var(--text-secondary);",
                                                             "{desc}"
                                                         }
                                                         if let Some(cat) = cat_name {
-                                                            span {
-                                                                style: "font-size: 0.75rem; color: var(--text-muted); white-space: nowrap;",
-                                                                "{cat}"
-                                                            }
+                                                            span { class: "project-row__cat", "{cat}" }
                                                         }
                                                         span {
-                                                            style: "font-size: 0.85rem; font-weight: 600; color: {amount_color}; white-space: nowrap;",
+                                                            class: "project-row__amount",
+                                                            style: "font-size: 0.85rem; color: {amount_color};",
                                                             "{amount_str}"
                                                         }
                                                         button {
@@ -396,7 +361,7 @@ pub fn Projects() -> Element {
                                                                 let _ = add_to_group(tid, project_id).await;
                                                                 project_txs_res.restart();
                                                             },
-                                                            style: "padding: 3px 10px; background: #1e293b; color: #f1f5f9; border: none; border-radius: 6px; cursor: pointer; font-size: 0.75rem; white-space: nowrap; flex-shrink: 0;",
+                                                            class: "btn-primary btn-primary--sm",
                                                             "Add"
                                                         }
                                                     }

@@ -11,15 +11,12 @@ pub fn Navbar(
     let icon = if dark_mode { "☀" } else { "☾" };
     rsx! {
         nav {
-            style: "display: flex; align-items: center; gap: 24px; padding: 0 32px; height: 52px; background: #1e293b; color: #f1f5f9;",
-            span {
-                style: "font-weight: 700; font-size: 1.1rem; color: #f1f5f9; margin-right: 16px;",
-                "Budget"
-            }
+            class: "app-nav",
+            span { class: "nav-brand", "Budget" }
             {children}
             button {
+                class: "nav-theme-btn",
                 onclick: move |_| on_toggle.call(()),
-                style: "margin-left: auto; background: transparent; border: 1px solid #475569; color: #94a3b8; border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 0.9rem; flex-shrink: 0;",
                 "{icon}"
             }
         }
@@ -30,9 +27,6 @@ pub fn Navbar(
 #[component]
 pub fn NavLink(children: Element) -> Element {
     rsx! {
-        span {
-            style: "font-size: 0.9rem; color: #94a3b8;",
-            {children}
-        }
+        span { class: "nav-link", {children} }
     }
 }

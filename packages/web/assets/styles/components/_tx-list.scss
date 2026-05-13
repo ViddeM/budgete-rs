@@ -1,0 +1,87 @@
+// ── Transaction list & rows ───────────────────────────────────────────────
+// Grid column template shared by header and every data row.
+
+$tx-cols: 90px 1fr 72px 150px 100px;
+
+.tx-list {
+    font-family: sans-serif;
+}
+
+// ── Header row ────────────────────────────────────────────────────────────
+
+.tx-list__header {
+    display: grid;
+    grid-template-columns: $tx-cols;
+    gap: 12px;
+    padding: 6px 0;
+    border-bottom: 2px solid var(--border);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+}
+
+.tx-list__header-amount {
+    text-align: right;
+}
+
+// ── Empty state ───────────────────────────────────────────────────────────
+
+.tx-empty {
+    color: var(--text-muted);
+    text-align: center;
+    padding: 24px 0;
+}
+
+// ── Data row ──────────────────────────────────────────────────────────────
+
+.tx-row {
+    display: grid;
+    grid-template-columns: $tx-cols;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-subtle);
+
+    &__date {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    &__desc {
+        font-size: 0.9rem;
+        color: var(--text-primary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    &__source {
+        font-size: 0.7rem;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    &__classify {
+        width: 100%;
+        font-size: 0.8rem;
+        border: 1px solid var(--border-input);
+        border-radius: 6px;
+        padding: 2px 4px;
+        color: var(--text-secondary);
+        box-sizing: border-box;
+    }
+
+    &__amount {
+        text-align: right;
+        font-weight: 600;
+        font-size: 0.9rem;
+        // colour is set inline (positive = income, negative = expense)
+    }
+}

@@ -12,22 +12,22 @@ pub fn TransactionList(
 ) -> Element {
     if transactions.is_empty() {
         return rsx! {
-            p { style: "color: var(--text-muted); text-align: center; padding: 24px 0;", "No transactions." }
+            p { class: "tx-empty", "No transactions." }
         };
     }
 
     rsx! {
         div {
-            style: "font-family: sans-serif;",
+            class: "tx-list",
 
             // Header row — must use the same grid template as TransactionRow
             div {
-                style: "display: grid; grid-template-columns: 90px 1fr 72px 150px 100px; gap: 12px; padding: 6px 0; border-bottom: 2px solid var(--border); font-size: 0.75rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase;",
+                class: "tx-list__header",
                 span { "Date" }
                 span { "Description" }
                 span { "Source" }
                 span { "Category" }
-                span { style: "text-align: right;", "Amount" }
+                span { class: "tx-list__header-amount", "Amount" }
             }
 
             for tx in transactions.iter() {

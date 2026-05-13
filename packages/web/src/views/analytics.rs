@@ -114,36 +114,36 @@ pub fn Analytics() -> Element {
 
     rsx! {
         div {
-            style: "padding: 32px; font-family: sans-serif;",
-            h1 { style: "margin: 0 0 24px; font-size: 1.5rem; color: var(--text-primary);", "Analytics" }
+            class: "view",
+            h1 { class: "view__title", "Analytics" }
 
             // --- Filters ---
             div {
-                style: "display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; margin-bottom: 28px;",
+                class: "analytics-filters",
 
                 div {
-                    label { style: "display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;", "From" }
+                    label { class: "filter-label", "From" }
                     input {
                         r#type: "date",
                         value: date_from(),
                         oninput: move |e| date_from.set(e.value()),
-                        style: "padding: 7px 10px; border: 1px solid var(--border-input); border-radius: 8px; font-size: 0.9rem;",
+                        class: "input-std",
                     }
                 }
                 div {
-                    label { style: "display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;", "To" }
+                    label { class: "filter-label", "To" }
                     input {
                         r#type: "date",
                         value: date_to(),
                         oninput: move |e| date_to.set(e.value()),
-                        style: "padding: 7px 10px; border: 1px solid var(--border-input); border-radius: 8px; font-size: 0.9rem;",
+                        class: "input-std",
                     }
                 }
                 if !groups.is_empty() {
                     div {
-                        label { style: "display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;", "Project" }
+                        label { class: "filter-label", "Project" }
                         select {
-                            style: "padding: 7px 10px; border: 1px solid var(--border-input); border-radius: 8px; font-size: 0.9rem;",
+                            class: "input-std",
                             onchange: move |e: Event<FormData>| {
                                 selected_group.set(Uuid::parse_str(&e.value()).ok());
                             },
@@ -157,29 +157,29 @@ pub fn Analytics() -> Element {
             }
 
             // --- Spending over time ---
-            h2 { style: "font-size: 1rem; color: var(--text-secondary); margin-bottom: 12px;", "Monthly overview" }
+            h2 { class: "view__section-title", "Monthly overview" }
             match over_time_res() {
                 None => rsx! { p { "Loading…" } },
-                Some(Err(e)) => rsx! { p { style: "color: red;", "Error: {e}" } },
+                Some(Err(e)) => rsx! { p { class: "text-error", "Error: {e}" } },
                 Some(Ok(rows)) if rows.is_empty() => rsx! {
                     p { style: "color: var(--text-muted);", "No data for selected range." }
                 },
                 Some(Ok(rows)) => rsx! {
                     div {
-                        style: "display: flex; flex-direction: column; gap: 6px; max-width: 600px; margin-bottom: 28px;",
+                        class: "time-table",
                         div {
-                            style: "display: grid; grid-template-columns: 1fr 1fr 1fr; font-size: 0.75rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; padding: 4px 0; border-bottom: 2px solid var(--border);",
+                            class: "time-table__header",
                             span { "Period" }
-                            span { style: "text-align: right;", "Expenses" }
-                            span { style: "text-align: right;", "Income" }
+                            span { class: "time-table__header-r", "Expenses" }
+                            span { class: "time-table__header-r", "Income" }
                         }
                         for row in rows.iter() {
                             div {
                                 key: "{row.period_label}",
-                                style: "display: grid; grid-template-columns: 1fr 1fr 1fr; font-size: 0.9rem; padding: 6px 0; border-bottom: 1px solid var(--border-subtle);",
-                                span { style: "color: var(--text-primary);", "{row.period_label}" }
-                                span { style: "text-align: right; color: #dc2626; font-weight: 600;", "{fmt_amount(row.expenses)}" }
-                                span { style: "text-align: right; color: #16a34a; font-weight: 600;", "{fmt_amount(row.income)}" }
+                                class: "time-table__row",
+                                span { class: "time-table__period", "{row.period_label}" }
+                                span { class: "time-table__expense", "{fmt_amount(row.expenses)}" }
+                                span { class: "time-table__income",  "{fmt_amount(row.income)}" }
                             }
                         }
                     }
@@ -187,10 +187,10 @@ pub fn Analytics() -> Element {
             }
 
             // --- By category ---
-            h2 { style: "font-size: 1rem; color: var(--text-secondary); margin-bottom: 12px;", "By category" }
+            h2 { class: "view__section-title", "By category" }
             match category_spend_res() {
                 None => rsx! { p { "Loading…" } },
-                Some(Err(e)) => rsx! { p { style: "color: red;", "Error: {e}" } },
+                Some(Err(e)) => rsx! { p { class: "text-error", "Error: {e}" } },
                 Some(Ok(cats)) if cats.is_empty() => rsx! {
                     p { style: "color: var(--text-muted);", "No categorised transactions in this range." }
                 },
@@ -199,7 +199,7 @@ pub fn Analytics() -> Element {
                     let total: f64 = cat_groups.iter().filter_map(|g| g.total.to_f64()).sum();
                     rsx! {
                         div {
-                            style: "display: flex; flex-direction: column; gap: 10px; max-width: 480px; margin-bottom: 28px;",
+                            class: "cat-bars",
                             for group in cat_groups.iter() {
                                 {
                                     let gid = group.id;
@@ -207,21 +207,27 @@ pub fn Analytics() -> Element {
                                     let pct = group.total.to_f64()
                                         .map(|v| if total > 0.0 { v / total * 100.0 } else { 0.0 })
                                         .unwrap_or(0.0);
-                                    let label_style = if has_subs {
-                                        "display: flex; justify-content: space-between; cursor: pointer;"
+                                    let label_class = if has_subs {
+                                        "cat-bar__label-row cat-bar__label-row--clickable"
                                     } else {
-                                        "display: flex; justify-content: space-between;"
+                                        "cat-bar__label-row"
                                     };
-                                    let arrow_transform = if expanded_cats().contains(&gid) { "rotate(90deg)" } else { "rotate(0deg)" };
+                                    let arrow_class = if expanded_cats().contains(&gid) {
+                                        "expand-arrow expand-arrow--open"
+                                    } else {
+                                        "expand-arrow"
+                                    };
                                     rsx! {
                                         div {
                                             key: "{gid}",
+                                            class: "cat-bar",
 
                                             // Top-level row
                                             div {
+                                                class: "cat-bar__label-row-wrap",
                                                 style: "display: flex; flex-direction: column; gap: 4px;",
                                                 div {
-                                                    style: "{label_style}",
+                                                    class: "{label_class}",
                                                     onclick: move |_| {
                                                         if has_subs {
                                                             let mut exp = expanded_cats.write();
@@ -233,33 +239,25 @@ pub fn Analytics() -> Element {
                                                         }
                                                     },
                                                     span {
-                                                        style: "display: flex; align-items: center; gap: 6px; font-size: 0.9rem; color: var(--text-primary);",
+                                                        class: "cat-bar__name-group",
                                                         span {
-                                                            style: "width: 10px; height: 10px; border-radius: 50%; background: {group.color};",
+                                                            class: "color-dot color-dot--md",
+                                                            style: "background: {group.color};",
                                                         }
                                                         "{group.name}"
                                                         if has_subs {
-                                                            span {
-                                                                style: "display: inline-block; font-size: 0.55rem; color: var(--text-dim); margin-left: 2px; transition: transform 0.15s ease; transform: {arrow_transform};",
-                                                                "▶"
-                                                            }
+                                                            span { class: "{arrow_class}", "▶" }
                                                         }
                                                     }
-                                                    span {
-                                                        style: "font-weight: 600; font-size: 0.9rem; color: var(--text-secondary);",
-                                                        "{fmt_amount(group.total)}"
-                                                    }
+                                                    span { class: "cat-bar__total", "{fmt_amount(group.total)}" }
                                                 }
-                                                // Parent proportional bar — tinted track + solid fill
+                                                // Parent proportional bar
                                                 div {
-                                                    style: "height: 8px; border-radius: 4px; position: relative; overflow: hidden;",
-                                                    // Tinted track
+                                                    class: "cat-bar__track",
+                                                    div { class: "cat-bar__tint", style: "background: {group.color};" }
                                                     div {
-                                                        style: "position: absolute; inset: 0; background: {group.color}; opacity: 0.15;",
-                                                    }
-                                                    // Solid fill
-                                                    div {
-                                                        style: "position: absolute; top: 0; left: 0; bottom: 0; width: {pct:.1}%; background: {group.color}; border-radius: 4px;",
+                                                        class: "cat-bar__fill",
+                                                        style: "background: {group.color}; width: {pct:.1}%;",
                                                     }
                                                 }
                                             }
@@ -267,7 +265,7 @@ pub fn Analytics() -> Element {
                                             // Subcategory rows (when expanded)
                                             if expanded_cats().contains(&gid) && has_subs {
                                                 div {
-                                                    style: "margin-left: 16px; display: flex; flex-direction: column; gap: 6px; margin-top: 6px;",
+                                                    class: "cat-bar__subs",
                                                     for sub in group.subcategories.iter() {
                                                         {
                                                             let sub_pct = sub.total.to_f64()
@@ -276,29 +274,26 @@ pub fn Analytics() -> Element {
                                                             rsx! {
                                                                 div {
                                                                     key: "{sub.category_id}",
-                                                                    style: "display: flex; flex-direction: column; gap: 3px;",
+                                                                    class: "cat-bar__sub",
                                                                     div {
-                                                                        style: "display: flex; justify-content: space-between;",
+                                                                        class: "cat-bar__sub-label-row",
                                                                         span {
-                                                                            style: "display: flex; align-items: center; gap: 5px; font-size: 0.82rem; color: var(--text-muted);",
+                                                                            class: "cat-bar__sub-name-group",
                                                                             span {
-                                                                                style: "width: 8px; height: 8px; border-radius: 50%; background: {sub.category_color};",
+                                                                                class: "color-dot color-dot--sm",
+                                                                                style: "background: {sub.category_color};",
                                                                             }
                                                                             "{sub.category_name}"
                                                                         }
-                                                                        span {
-                                                                            style: "font-size: 0.82rem; font-weight: 500; color: var(--text-dim);",
-                                                                            "{fmt_amount(sub.total)}"
-                                                                        }
+                                                                        span { class: "cat-bar__sub-total", "{fmt_amount(sub.total)}" }
                                                                     }
                                                                     // Subcategory proportional bar
                                                                     div {
-                                                                        style: "height: 5px; border-radius: 3px; position: relative; overflow: hidden;",
+                                                                        class: "cat-bar__track cat-bar__track--sm",
+                                                                        div { class: "cat-bar__tint", style: "background: {sub.category_color};" }
                                                                         div {
-                                                                            style: "position: absolute; inset: 0; background: {sub.category_color}; opacity: 0.15;",
-                                                                        }
-                                                                        div {
-                                                                            style: "position: absolute; top: 0; left: 0; bottom: 0; width: {sub_pct:.1}%; background: {sub.category_color}; border-radius: 3px;",
+                                                                            class: "cat-bar__fill cat-bar__fill--sm",
+                                                                            style: "background: {sub.category_color}; width: {sub_pct:.1}%;",
                                                                         }
                                                                     }
                                                                 }
@@ -319,15 +314,14 @@ pub fn Analytics() -> Element {
             // --- Transaction drill-down toggle ---
             button {
                 onclick: move |_| show_transactions.set(!show_transactions()),
-                class: "btn-ghost",
-                style: "padding: 8px 16px; background: var(--border); border: 1px solid var(--border-input); border-radius: 8px; cursor: pointer; font-size: 0.85rem; margin-bottom: 16px; color: var(--text-primary);",
+                class: "btn-toggle",
                 if show_transactions() { "Hide transactions" } else { "Show all transactions" }
             }
 
             if show_transactions() {
                 match transactions_res() {
                     None => rsx! { p { "Loading…" } },
-                    Some(Err(e)) => rsx! { p { style: "color: red;", "Error: {e}" } },
+                    Some(Err(e)) => rsx! { p { class: "text-error", "Error: {e}" } },
                     Some(Ok(txs)) => rsx! {
                         TransactionList { transactions: txs, classify_action: None }
                     },

@@ -1,0 +1,29 @@
+// ── Design tokens (CSS custom properties) ─────────────────────────────────
+
+:root {
+    --bg-page:        #f8fafc;
+    --bg-card:        #ffffff;
+    --bg-card-alt:    #f9fafb;
+    --bg-row-alt:     #f3f4f6;
+    --border:         #e5e7eb;
+    --border-input:   #d1d5db;
+    --border-subtle:  #f3f4f6;
+    --text-primary:   #111827;
+    --text-secondary: #374151;
+    --text-muted:     #6b7280;
+    --text-dim:       #9ca3af;
+}
+
+[data-theme="dark"] {
+    --bg-page:        #0f172a;
+    --bg-card:        #1e293b;
+    --bg-card-alt:    #162032;
+    --bg-row-alt:     #0f1b2d;
+    --border:         #334155;
+    --border-input:   #475569;
+    --border-subtle:  #1e293b;
+    --text-primary:   #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-muted:     #94a3b8;
+    --text-dim:       #64748b;
+}

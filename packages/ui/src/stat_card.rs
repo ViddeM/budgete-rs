@@ -12,20 +12,11 @@ pub fn StatCard(
 ) -> Element {
     rsx! {
         div {
-            style: "background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; min-width: 160px;",
-            p {
-                style: "margin: 0 0 4px; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;",
-                "{label}"
-            }
-            p {
-                style: "margin: 0; font-size: 1.6rem; font-weight: 700; color: {value_color};",
-                "{value}"
-            }
+            class: "stat-card",
+            p { class: "stat-card__label", "{label}" }
+            p { class: "stat-card__value", style: "color: {value_color};", "{value}" }
             if let Some(sub) = sub_label {
-                p {
-                    style: "margin: 4px 0 0; font-size: 0.78rem; color: var(--text-muted);",
-                    "{sub}"
-                }
+                p { class: "stat-card__sub", "{sub}" }
             }
         }
     }

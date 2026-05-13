@@ -1,0 +1,80 @@
+// ── Dashboard stat row ────────────────────────────────────────────────────
+
+.dash-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 32px;
+}
+
+// ── Category tree (top-5 spending breakdown) ──────────────────────────────
+
+.cat-tree {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 480px;
+
+    // One top-level group row
+    &__row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        background: var(--bg-card-alt);
+        border-radius: 8px;
+
+        &--clickable { cursor: pointer; }
+    }
+
+    &__name-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    &__name {
+        font-size: 0.9rem;
+        color: var(--text-primary);
+    }
+
+    &__total {
+        font-weight: 600;
+        color: var(--text-secondary);
+    }
+
+    // Expanded subcategory list
+    &__subs {
+        margin-left: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        margin-top: 3px;
+    }
+
+    &__sub-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 10px;
+        background: var(--bg-row-alt);
+        border-radius: 6px;
+    }
+
+    &__sub-name-group {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    &__sub-label {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+    }
+
+    &__sub-total {
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: var(--text-muted);
+    }
+}

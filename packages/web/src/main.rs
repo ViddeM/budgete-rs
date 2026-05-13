@@ -118,42 +118,42 @@ fn AppLayout() -> Element {
             Link {
                 to: Route::Dashboard {},
                 active_class: "nav-active",
-                style: "color: #94a3b8; text-decoration: none; font-size: 0.9rem;",
+                class: "nav-link",
                 "Dashboard"
             }
             Link {
                 to: Route::Upload {},
                 active_class: "nav-active",
-                style: "color: #94a3b8; text-decoration: none; font-size: 0.9rem;",
+                class: "nav-link",
                 "Upload"
             }
             Link {
                 to: Route::Classify {},
                 active_class: "nav-active",
-                style: "color: #94a3b8; text-decoration: none; font-size: 0.9rem;",
+                class: "nav-link",
                 "Classify"
             }
             Link {
                 to: Route::Transactions {},
                 active_class: "nav-active",
-                style: "color: #94a3b8; text-decoration: none; font-size: 0.9rem;",
+                class: "nav-link",
                 "Transactions"
             }
             Link {
                 to: Route::Projects {},
                 active_class: "nav-active",
-                style: "color: #94a3b8; text-decoration: none; font-size: 0.9rem;",
+                class: "nav-link",
                 "Projects"
             }
             Link {
                 to: Route::Analytics {},
                 active_class: "nav-active",
-                style: "color: #94a3b8; text-decoration: none; font-size: 0.9rem;",
+                class: "nav-link",
                 "Analytics"
             }
             a {
                 href: "/api/auth/logout",
-                style: "color: #94a3b8; text-decoration: none; font-size: 0.9rem;",
+                class: "nav-link",
                 "Log out"
             }
         }

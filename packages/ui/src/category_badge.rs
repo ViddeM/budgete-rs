@@ -11,7 +11,8 @@ pub fn CategoryBadge(category: Category) -> Element {
     let filter = if hovered() { hover_filter(&category.color) } else { "none" };
     rsx! {
         span {
-            style: "background-color: {category.color}; color: {text_color}; padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; cursor: default; transition: filter 0.15s ease; filter: {filter};",
+            class: "badge",
+            style: "background-color: {category.color}; color: {text_color}; filter: {filter};",
             onmouseenter: move |_| hovered.set(true),
             onmouseleave: move |_| hovered.set(false),
             "{category.name}"
@@ -23,9 +24,6 @@ pub fn CategoryBadge(category: Category) -> Element {
 #[component]
 pub fn UnprocessedBadge() -> Element {
     rsx! {
-        span {
-            style: "background-color: var(--border); color: var(--text-muted); padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600;",
-            "Unprocessed"
-        }
+        span { class: "badge badge--unprocessed", "Unprocessed" }
     }
 }

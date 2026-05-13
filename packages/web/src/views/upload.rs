@@ -40,20 +40,17 @@ pub fn Upload() -> Element {
 
     rsx! {
         div {
-            style: "padding: 32px; font-family: sans-serif; max-width: 560px;",
-            h1 { style: "margin: 0 0 24px; font-size: 1.5rem; color: var(--text-primary);", "Upload transactions" }
+            class: "view view--narrow",
+            h1 { class: "view__title", "Upload transactions" }
 
             div {
                 style: "display: flex; flex-direction: column; gap: 16px;",
 
                 // Source selector
                 div {
-                    label {
-                        style: "display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;",
-                        "Bank / Source"
-                    }
+                    label { class: "form-label", "Bank / Source" }
                     select {
-                        style: "width: 100%; padding: 8px 10px; border: 1px solid var(--border-input); border-radius: 8px; font-size: 0.9rem; color: var(--text-primary);",
+                        class: "input-std input-std--full",
                         onchange: move |evt: Event<FormData>| {
                             source.set(match evt.value().as_str() {
                                 "nordea" => CsvSource::Nordea,
@@ -67,38 +64,32 @@ pub fn Upload() -> Element {
 
                 // File picker — triggers import on file selection
                 div {
-                    label {
-                        style: "display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;",
-                        "CSV file"
-                    }
+                    label { class: "form-label", "CSV file" }
                     input {
                         r#type: "file",
                         accept: ".csv,text/csv",
                         disabled: loading(),
-                        style: "width: 100%; font-size: 0.9rem;",
+                        class: "input-std input-std--full",
                         onchange: on_file_change,
                     }
-                    p {
-                        style: "margin: 4px 0 0; font-size: 0.78rem; color: var(--text-dim);",
-                        "Selecting a file will start the import automatically."
-                    }
+                    p { class: "field-hint", "Selecting a file will start the import automatically." }
                 }
 
                 if loading() {
-                    p { style: "color: #6366f1; font-weight: 600;", "Importing…" }
+                    p { class: "text-loading", "Importing…" }
                 }
             }
 
             if let Some(e) = error() {
-                p { style: "margin-top: 16px; color: #dc2626;", "{e}" }
+                p { class: "form-error", style: "margin-top: 16px;", "{e}" }
             }
 
             if let Some(r) = result() {
                 div {
-                    style: "margin-top: 20px; padding: 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;",
-                    p { style: "margin: 0; font-weight: 600; color: #166534;", "Import complete" }
+                    class: "upload-result",
+                    p { class: "upload-result__title", "Import complete" }
                     ul {
-                        style: "margin: 8px 0 0; padding-left: 20px; color: #166534; font-size: 0.9rem;",
+                        class: "upload-result__list",
                         li { "{r.imported} transactions imported" }
                         li { "{r.skipped} duplicates skipped" }
                         li { "{r.pending} pending (no date)" }

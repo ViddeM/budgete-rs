@@ -1,0 +1,106 @@
+// ── Classify page two-column layout ──────────────────────────────────────
+
+.classify-col-left {
+    width: 340px;
+    flex-shrink: 0;
+}
+
+// ── Category tree nodes ───────────────────────────────────────────────────
+
+.cat-node {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+
+    // Top-level display row
+    &__parent-display {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+    }
+
+    // Top-level inline-edit form
+    &__parent-edit {
+        padding: 10px 12px;
+        background: var(--bg-card-alt);
+        border-bottom: 1px solid var(--border);
+    }
+
+    // Subcategory separator
+    &__sub-row {
+        border-top: 1px solid var(--border-subtle);
+    }
+
+    // Subcategory display row (indented)
+    &__sub-display {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px 8px 28px;
+    }
+
+    // Subcategory inline-edit form (indented)
+    &__sub-edit {
+        padding: 8px 12px 8px 28px;
+        background: var(--bg-card-alt);
+    }
+
+    // "Add subcategory" footer strip
+    &__add-sub {
+        border-top: 1px solid var(--border-subtle);
+        padding: 6px 12px 6px 28px;
+    }
+}
+
+// ── Queue section ─────────────────────────────────────────────────────────
+
+.queue-remaining {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin: 0 0 16px;
+}
+
+// ── Upcoming preview (ghosted rows below active card) ─────────────────────
+
+.upcoming-preview {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    opacity: 0.45;
+    pointer-events: none;
+    user-select: none;
+
+    &__row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 16px;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+    }
+
+    &__date {
+        min-width: 86px;
+        font-size: 0.78rem;
+        color: var(--text-dim);
+    }
+
+    &__desc {
+        flex: 1;
+        font-size: 0.88rem;
+        color: var(--text-secondary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    &__amount {
+        font-size: 0.88rem;
+        font-weight: 600;
+        // colour is set inline (dynamic)
+    }
+}

@@ -31,31 +31,21 @@ pub fn TransactionRow(
 
     rsx! {
         div {
-            style: "display: grid; grid-template-columns: 90px 1fr 72px 150px 100px; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border-subtle);",
+            class: "tx-row",
 
             // Date
-            span {
-                style: "font-size: 0.8rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
-                "{date_str}"
-            }
+            span { class: "tx-row__date", "{date_str}" }
 
             // Description
-            span {
-                style: "font-size: 0.9rem; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
-                "{transaction.description}"
-            }
+            span { class: "tx-row__desc", "{transaction.description}" }
 
             // Source badge
-            span {
-                style: "font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
-                "{transaction.source}"
-            }
+            span { class: "tx-row__source", "{transaction.source}" }
 
             // Category badge / classify dropdown
             if let Some(ref action) = classify_action {
-                // Show a select for classification / reclassification
                 select {
-                    style: "width: 100%; font-size: 0.8rem; border: 1px solid var(--border-input); border-radius: 6px; padding: 2px 4px; color: var(--text-secondary); box-sizing: border-box;",
+                    class: "tx-row__classify",
                     onchange: {
                         let tx = transaction.clone();
                         let cats = action.categories.clone();
@@ -79,7 +69,6 @@ pub fn TransactionRow(
                     }
                 }
             } else {
-                // Read-only badge
                 if let Some(c) = cat {
                     CategoryBadge { category: c }
                 } else {
@@ -89,7 +78,8 @@ pub fn TransactionRow(
 
             // Amount
             span {
-                style: "text-align: right; font-weight: 600; font-size: 0.9rem; color: {amount_color};",
+                class: "tx-row__amount",
+                style: "color: {amount_color};",
                 "{amount_str}"
             }
         }

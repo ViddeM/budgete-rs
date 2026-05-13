@@ -1,0 +1,124 @@
+// ── Button transition (applied to all buttons) ────────────────────────────
+
+button {
+    transition:
+        filter           0.15s ease,
+        transform        0.1s  ease,
+        background-color 0.15s ease,
+        border-color     0.15s ease,
+        color            0.15s ease,
+        box-shadow       0.15s ease;
+}
+
+// ── Solid primary (dark navy) ─────────────────────────────────────────────
+
+.btn-primary {
+    padding: 7px 14px;
+    background: #1e293b;
+    color: #f1f5f9;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+
+    &--sm  { padding: 5px 14px; border-radius: 6px; font-size: 0.8rem; }
+    &--xs  { padding: 5px 14px; border-radius: 6px; font-size: 0.78rem; }
+    &--full { width: 100%; }
+}
+
+// ── Ghost / outline ───────────────────────────────────────────────────────
+
+.btn-ghost {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border-input);
+    border-radius: 6px;
+    cursor: pointer;
+    padding: 5px 12px;
+    font-size: 0.8rem;
+
+    &--sm { padding: 3px 10px; font-size: 0.75rem; }
+    &--xs { padding: 2px 8px;  font-size: 0.72rem; }
+}
+
+// ── Toggle (show / hide panels) ───────────────────────────────────────────
+
+.btn-toggle {
+    padding: 8px 16px;
+    background: var(--border);
+    color: var(--text-primary);
+    border: 1px solid var(--border-input);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin-bottom: 16px;
+}
+
+// ── Undo ──────────────────────────────────────────────────────────────────
+
+.btn-undo {
+    padding: 6px 14px;
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-input);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 500;
+}
+
+// ── Borderless text button ────────────────────────────────────────────────
+
+.btn-text {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    cursor: pointer;
+    padding: 4px 0;
+}
+
+// ── Danger / destructive ──────────────────────────────────────────────────
+
+.btn-danger {
+    background: transparent;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    cursor: pointer;
+    padding: 3px 10px;
+    font-size: 0.75rem;
+
+    &--xs { padding: 2px 8px; font-size: 0.72rem; }
+}
+
+// ── Hover / active effects ────────────────────────────────────────────────
+
+// Solid / toggle-style — lighten + lift
+button:hover:not(:disabled):not(.btn-ghost):not(.btn-danger):not(.btn-text) {
+    filter: brightness(1.55);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
+}
+
+// Ghost-style — same brightness approach
+.btn-ghost:hover:not(:disabled),
+.btn-toggle:hover:not(:disabled),
+.btn-undo:hover:not(:disabled) {
+    filter: brightness(1.55);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
+}
+
+// Danger — red fill
+.btn-danger:hover:not(:disabled) {
+    background-color: #fef2f2 !important;
+    border-color:     #f87171 !important;
+    color:            #b91c1c !important;
+}
+
+// Press feedback
+button:active:not(:disabled) {
+    filter: brightness(0.88);
+    transform: translateY(1px);
+}

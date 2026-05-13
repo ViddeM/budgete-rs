@@ -1,0 +1,30 @@
+// ── Stat card ─────────────────────────────────────────────────────────────
+
+.stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    min-width: 160px;
+
+    &__label {
+        margin: 0 0 4px;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    &__value {
+        margin: 0;
+        font-size: 1.6rem;
+        font-weight: 700;
+        // colour is set inline (dynamic per-card prop)
+    }
+
+    &__sub {
+        margin: 4px 0 0;
+        font-size: 0.78rem;
+        color: var(--text-muted);
+    }
+}

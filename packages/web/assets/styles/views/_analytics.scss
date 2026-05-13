@@ -1,0 +1,143 @@
+// ── Analytics filters row ─────────────────────────────────────────────────
+
+.analytics-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-end;
+    margin-bottom: 28px;
+}
+
+// ── Monthly overview table ────────────────────────────────────────────────
+
+.time-table {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 600px;
+    margin-bottom: 28px;
+
+    &__header {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        padding: 4px 0;
+        border-bottom: 2px solid var(--border);
+    }
+
+    &__header-r { text-align: right; }
+
+    &__row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        font-size: 0.9rem;
+        padding: 6px 0;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+
+    &__period  { color: var(--text-primary); }
+    &__expense { text-align: right; color: #dc2626; font-weight: 600; }
+    &__income  { text-align: right; color: #16a34a; font-weight: 600; }
+}
+
+// ── By-category proportional bar chart ───────────────────────────────────
+
+.cat-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 480px;
+    margin-bottom: 28px;
+}
+
+.cat-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    &__label-row {
+        display: flex;
+        justify-content: space-between;
+
+        &--clickable { cursor: pointer; }
+    }
+
+    &__name-group {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.9rem;
+        color: var(--text-primary);
+    }
+
+    &__total {
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+    }
+
+    // Progress track container
+    &__track {
+        height: 8px;
+        border-radius: 4px;
+        position: relative;
+        overflow: hidden;
+
+        &--sm { height: 5px; border-radius: 3px; }
+    }
+
+    // Tinted semi-transparent background (colour set inline)
+    &__tint {
+        position: absolute;
+        inset: 0;
+        opacity: 0.15;
+    }
+
+    // Solid fill bar (colour and width set inline)
+    &__fill {
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        border-radius: 4px;
+
+        &--sm { border-radius: 3px; }
+    }
+
+    // Expanded subcategories
+    &__subs {
+        margin-left: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 6px;
+    }
+
+    &__sub {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
+
+    &__sub-label-row {
+        display: flex;
+        justify-content: space-between;
+    }
+
+    &__sub-name-group {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.82rem;
+        color: var(--text-muted);
+    }
+
+    &__sub-total {
+        font-size: 0.82rem;
+        font-weight: 500;
+        color: var(--text-dim);
+    }
+}

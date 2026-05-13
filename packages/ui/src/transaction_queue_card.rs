@@ -30,39 +30,18 @@ pub fn TransactionQueueCard(
 
     rsx! {
         div {
-            style: "background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 28px 32px; max-width: 560px;",
+            class: "queue-card",
 
-            // Meta line: date · source
-            p {
-                style: "font-size: 0.78rem; color: var(--text-dim); margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.05em;",
-                "{date_str} · {transaction.source}"
-            }
+            p { class: "queue-card__meta", "{date_str} · {transaction.source}" }
+            p { class: "queue-card__desc", "{transaction.description}" }
+            p { class: "queue-card__amount", style: "color: {amount_color};", "{amount_str}" }
 
-            // Description
-            p {
-                style: "font-size: 1.25rem; font-weight: 600; color: var(--text-primary); margin: 0 0 10px; line-height: 1.4;",
-                "{transaction.description}"
-            }
-
-            // Amount
-            p {
-                style: "font-size: 2rem; font-weight: 700; color: {amount_color}; margin: 0 0 28px;",
-                "{amount_str}"
-            }
-
-            // Category picker — subcategories only, grouped under parents
             if !has_any_subcats {
-                p {
-                    style: "font-size: 0.85rem; color: var(--text-dim);",
-                    "Add subcategories to begin classifying."
-                }
+                p { class: "queue-card__no-cats", "Add subcategories to begin classifying." }
             } else {
-                p {
-                    style: "font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin: 0 0 12px; text-transform: uppercase; letter-spacing: 0.05em;",
-                    "Assign category"
-                }
+                p { class: "queue-card__pick-label", "Assign category" }
                 div {
-                    style: "display: flex; flex-direction: column; gap: 12px;",
+                    class: "queue-card__groups",
                     for parent in parents.iter() {
                         {
                             let parent_id = parent.id;
@@ -75,14 +54,9 @@ pub fn TransactionQueueCard(
                             } else {
                                 rsx! {
                                     div {
-                                        // Parent label
-                                        p {
-                                            style: "font-size: 0.72rem; font-weight: 700; color: var(--text-dim); margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.05em;",
-                                            "{parent.name}"
-                                        }
-                                        // Subcategory buttons
+                                        p { class: "queue-card__group-label", "{parent.name}" }
                                         div {
-                                            style: "display: flex; flex-wrap: wrap; gap: 8px;",
+                                            class: "queue-card__subcats",
                                             for sub in subcats.iter() {
                                                 CategoryButton {
                                                     key: "{sub.id}",
@@ -115,7 +89,8 @@ fn CategoryButton(
     let filter = if hovered() { hover_filter(&category.color) } else { "none" };
     rsx! {
         button {
-            style: "background: {category.color}; color: {text_color}; border: none; padding: 8px 20px; border-radius: 999px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: filter 0.15s ease; filter: {filter};",
+            class: "cat-btn",
+            style: "background: {category.color}; color: {text_color}; filter: {filter};",
             onmouseenter: move |_| hovered.set(true),
             onmouseleave: move |_| hovered.set(false),
             onclick: {

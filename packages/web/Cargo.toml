@@ -14,6 +14,9 @@ rust_decimal = { workspace = true }
 
 axum = { version = "0.8", optional = true }
 
+[build-dependencies]
+grass = "0.13"
+
 [features]
 default = []
 web = ["dioxus/web"]

@@ -1,0 +1,22 @@
+// ── Upload success result box ─────────────────────────────────────────────
+
+.upload-result {
+    margin-top: 20px;
+    padding: 16px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+
+    &__title {
+        margin: 0;
+        font-weight: 600;
+        color: #166534;
+    }
+
+    &__list {
+        margin: 8px 0 0;
+        padding-left: 20px;
+        color: #166534;
+        font-size: 0.9rem;
+    }
+}

@@ -1,0 +1,46 @@
+// ── Navigation bar ────────────────────────────────────────────────────────
+
+.app-nav {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 0 32px;
+    height: 52px;
+    background: #1e293b;
+    color: #f1f5f9;
+}
+
+.nav-brand {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #f1f5f9;
+    margin-right: 16px;
+}
+
+.nav-link {
+    color: #94a3b8;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.15s ease;
+
+    &:hover:not(.nav-active) { color: #cbd5e1; }
+}
+
+.nav-active {
+    color: #f1f5f9 !important;
+    font-weight: 700;
+    border-bottom: 2px solid #6366f1;
+    padding-bottom: 2px;
+}
+
+.nav-theme-btn {
+    margin-left: auto;
+    background: transparent;
+    border: 1px solid #475569;
+    color: #94a3b8;
+    border-radius: 6px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}

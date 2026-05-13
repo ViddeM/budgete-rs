@@ -14,7 +14,7 @@ pub fn Dashboard() -> Element {
 
     match stats() {
         None => rsx! { p { "Loading…" } },
-        Some(Err(e)) => rsx! { p { style: "color: red;", "Error: {e}" } },
+        Some(Err(e)) => rsx! { p { class: "text-error", "Error: {e}" } },
         Some(Ok(s)) => rsx! { DashboardContent { stats: s } },
     }
 }
@@ -96,11 +96,11 @@ fn DashboardContent(stats: DashboardStats) -> Element {
 
     rsx! {
         div {
-            style: "padding: 32px; font-family: sans-serif;",
-            h1 { style: "margin: 0 0 24px; font-size: 1.5rem; color: var(--text-primary);", "Dashboard" }
+            class: "view",
+            h1 { class: "view__title", "Dashboard" }
 
             div {
-                style: "display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 32px;",
+                class: "dash-stats",
 
                 StatCard {
                     label: "Expenses this month".to_string(),
@@ -128,26 +128,30 @@ fn DashboardContent(stats: DashboardStats) -> Element {
             }
 
             if !top5.is_empty() {
-                h2 { style: "font-size: 1rem; color: var(--text-secondary); margin-bottom: 12px;", "Top categories this month" }
+                h2 { class: "view__section-title", "Top categories this month" }
                 div {
-                    style: "display: flex; flex-direction: column; gap: 6px; max-width: 480px;",
+                    class: "cat-tree",
                     for group in top5.iter() {
                         {
                             let gid = group.id;
                             let has_subs = !group.subcategories.is_empty();
-                            let row_style = if has_subs {
-                                "display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--bg-card-alt); border-radius: 8px; cursor: pointer;"
+                            let row_class = if has_subs {
+                                "cat-tree__row cat-tree__row--clickable"
                             } else {
-                                "display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--bg-card-alt); border-radius: 8px;"
+                                "cat-tree__row"
                             };
-                            let arrow_transform = if expanded().contains(&gid) { "rotate(90deg)" } else { "rotate(0deg)" };
+                            let arrow_class = if expanded().contains(&gid) {
+                                "expand-arrow expand-arrow--open"
+                            } else {
+                                "expand-arrow"
+                            };
                             rsx! {
                                 div {
                                     key: "{gid}",
 
                                     // Top-level row
                                     div {
-                                        style: "{row_style}",
+                                        class: "{row_class}",
                                         onclick: move |_| {
                                             if has_subs {
                                                 let mut exp = expanded.write();
@@ -159,49 +163,36 @@ fn DashboardContent(stats: DashboardStats) -> Element {
                                             }
                                         },
                                         span {
-                                            style: "display: flex; align-items: center; gap: 8px;",
+                                            class: "cat-tree__name-group",
                                             span {
-                                                style: "width: 12px; height: 12px; border-radius: 50%; background: {group.color};",
+                                                class: "color-dot color-dot--lg",
+                                                style: "background: {group.color};",
                                             }
-                                            span {
-                                                style: "font-size: 0.9rem; color: var(--text-primary);",
-                                                "{group.name}"
-                                            }
+                                            span { class: "cat-tree__name", "{group.name}" }
                                             if has_subs {
-                                                span {
-                                                    style: "display: inline-block; font-size: 0.55rem; color: var(--text-dim); transition: transform 0.15s ease; transform: {arrow_transform};",
-                                                    "▶"
-                                                }
+                                                span { class: "{arrow_class}", "▶" }
                                             }
                                         }
-                                        span {
-                                            style: "font-weight: 600; color: var(--text-secondary);",
-                                            "{fmt_amount(group.total)}"
-                                        }
+                                        span { class: "cat-tree__total", "{fmt_amount(group.total)}" }
                                     }
 
                                     // Subcategory rows (when expanded)
                                     if expanded().contains(&gid) && has_subs {
                                         div {
-                                            style: "margin-left: 20px; display: flex; flex-direction: column; gap: 3px; margin-top: 3px;",
+                                            class: "cat-tree__subs",
                                             for sub in group.subcategories.iter() {
                                                 div {
                                                     key: "{sub.category_id}",
-                                                    style: "display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: var(--bg-row-alt); border-radius: 6px;",
+                                                    class: "cat-tree__sub-row",
                                                     span {
-                                                        style: "display: flex; align-items: center; gap: 6px;",
+                                                        class: "cat-tree__sub-name-group",
                                                         span {
-                                                            style: "width: 8px; height: 8px; border-radius: 50%; background: {sub.category_color};",
+                                                            class: "color-dot color-dot--sm",
+                                                            style: "background: {sub.category_color};",
                                                         }
-                                                        span {
-                                                            style: "font-size: 0.85rem; color: var(--text-secondary);",
-                                                            "{sub.category_name}"
-                                                        }
+                                                        span { class: "cat-tree__sub-label", "{sub.category_name}" }
                                                     }
-                                                    span {
-                                                        style: "font-size: 0.85rem; font-weight: 500; color: var(--text-muted);",
-                                                        "{fmt_amount(sub.total)}"
-                                                    }
+                                                    span { class: "cat-tree__sub-total", "{fmt_amount(sub.total)}" }
                                                 }
                                             }
                                         }

@@ -1,0 +1,34 @@
+// ── Page layout primitives ────────────────────────────────────────────────
+
+.view {
+    padding: 32px;
+    font-family: sans-serif;
+
+    &--narrow { max-width: 560px; }
+    &--wide   { max-width: 960px; }
+}
+
+.view__title {
+    margin: 0 0 24px;
+    font-size: 1.5rem;
+    color: var(--text-primary);
+}
+
+.view__section-title {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+
+// ── Two-column layout ─────────────────────────────────────────────────────
+
+.two-col {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+
+    &__right {
+        flex: 1;
+        min-width: 0;
+    }
+}

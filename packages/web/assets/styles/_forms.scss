@@ -1,0 +1,135 @@
+// ── Form card container ───────────────────────────────────────────────────
+
+.form-card {
+    background: var(--bg-card-alt);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+
+    &__title {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        margin: 0 0 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+}
+
+// ── Input fields ──────────────────────────────────────────────────────────
+
+.input-std {
+    padding: 7px 10px;
+    border: 1px solid var(--border-input);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+
+    &--full { width: 100%; }
+    &--mb   { margin-bottom: 8px; }
+
+    // Compact variant for tight spaces
+    &--compact {
+        padding: 5px 8px;
+        font-size: 0.85rem;
+        border-radius: 6px;
+    }
+}
+
+// ── Color picker ──────────────────────────────────────────────────────────
+
+.color-input {
+    flex-shrink: 0;
+    padding: 2px;
+    border: 1px solid var(--border-input);
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+
+    &--lg { width: 36px; height: 36px; border-radius: 8px; }
+    &--md { width: 32px; height: 32px; border-radius: 6px; }
+}
+
+// ── Labels ────────────────────────────────────────────────────────────────
+
+.form-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.filter-label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+// ── Row helpers ───────────────────────────────────────────────────────────
+
+.form-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+
+    &--center { align-items: center; }
+}
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+}
+
+// ── Checkbox label ────────────────────────────────────────────────────────
+
+.checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    cursor: pointer;
+
+    input[type="checkbox"] {
+        width: 14px;
+        height: 14px;
+        cursor: pointer;
+        accent-color: #1e293b;
+    }
+
+    span {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        user-select: none;
+    }
+
+    &--sm span { font-size: 0.78rem; }
+}
+
+// ── Feedback text ─────────────────────────────────────────────────────────
+
+.form-error {
+    color: #dc2626;
+    font-size: 0.8rem;
+    margin: 6px 0 0;
+
+    &--sm { font-size: 0.78rem; }
+    &--xs { font-size: 0.75rem; }
+}
+
+.field-hint {
+    margin: 4px 0 0;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+}
+
+// ── Action button row (Save / Cancel) ─────────────────────────────────────
+
+.btn-actions {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+    margin-top: 6px;
+}

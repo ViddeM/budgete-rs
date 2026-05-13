@@ -20,12 +20,12 @@ pub fn Transactions() -> Element {
 
     rsx! {
         div {
-            style: "padding: 32px; font-family: sans-serif; max-width: 960px;",
-            h1 { style: "margin: 0 0 24px; font-size: 1.5rem; color: var(--text-primary);", "Transactions" }
+            class: "view view--wide",
+            h1 { class: "view__title", "Transactions" }
 
             match transactions_res() {
                 None => rsx! { p { style: "color: var(--text-muted);", "Loading…" } },
-                Some(Err(e)) => rsx! { p { style: "color: #dc2626;", "Error: {e}" } },
+                Some(Err(e)) => rsx! { p { class: "text-error", "Error: {e}" } },
                 Some(Ok(all_txs)) => {
                     let txs: Vec<Transaction> = all_txs
                         .into_iter()
