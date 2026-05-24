@@ -28,6 +28,7 @@ enum Route {
 }
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
+const FAVICON_SVG: Asset = asset!("/assets/favicon.svg");
 const MAIN_CSS: Asset = asset!("/assets/main.css");
 
 /// Inline script injected into <head> before any CSS renders.
@@ -109,8 +110,10 @@ fn App() -> Element {
     });
 
     rsx! {
+        document::Title { "Budgets" }
         document::Meta { name: "viewport", content: "width=device-width, initial-scale=1" }
-        document::Link { rel: "icon", href: FAVICON }
+        document::Link { rel: "icon", r#type: "image/svg+xml", href: FAVICON_SVG }
+        document::Link { rel: "icon", r#type: "image/x-icon", sizes: "48x48", href: FAVICON }
         document::Link { rel: "stylesheet", href: MAIN_CSS }
         document::Script { {THEME_INIT_SCRIPT} }
         Router::<Route> {}
