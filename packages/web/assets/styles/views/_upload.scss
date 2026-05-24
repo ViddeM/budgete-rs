@@ -1,3 +1,26 @@
+// ── Upload preview box (shown before confirming import) ──────────────────
+
+.upload-preview {
+    margin-top: 20px;
+    padding: 16px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+
+    &__title {
+        margin: 0;
+        font-weight: 600;
+        color: #1e40af;
+    }
+
+    &__list {
+        margin: 8px 0 12px;
+        padding-left: 20px;
+        color: #1d4ed8;
+        font-size: 0.9rem;
+    }
+}
+
 // ── Upload success result box ─────────────────────────────────────────────
 
 .upload-result {

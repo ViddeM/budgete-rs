@@ -5,6 +5,18 @@
     flex-shrink: 0;
 }
 
+// ── Mobile overrides (≤ 640 px) ───────────────────────────────────────────
+
+@media (max-width: 640px) {
+    .projects-col-left {
+        width: 100%;
+    }
+
+    .project-row__date {
+        min-width: 64px;
+    }
+}
+
 // ── Project card (list on left) ───────────────────────────────────────────
 
 .project-card {

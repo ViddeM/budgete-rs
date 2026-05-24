@@ -30,6 +30,11 @@ enum Route {
 const FAVICON: Asset = asset!("/assets/favicon.ico");
 const MAIN_CSS: Asset = asset!("/assets/main.css");
 
+/// Inline script injected into <head> before any CSS renders.
+/// Reads the `theme` cookie synchronously and sets `data-theme` on <html>,
+/// preventing a flash of light mode before the Dioxus effect fires.
+const THEME_INIT_SCRIPT: &str = r#"{const m=document.cookie.match(/(?:^|;)\s*theme=([^;]+)/);if(m&&m[1]==="dark")document.documentElement.setAttribute("data-theme","dark");}"#;
+
 fn main() {
     // On the server, use dioxus::server::serve so that the DB pool is
     // initialised inside the dioxus-managed tokio runtime.  The closure is
@@ -55,6 +60,9 @@ fn main() {
                 .expect("failed to ensure local user");
 
             dioxus::server::router(App)
+                // Logout is still needed in local mode so the nav link works.
+                // The handler safely no-ops when there is no session cookie.
+                .route("/api/auth/logout", get(handlers::logout_handler))
         } else {
             dioxus::server::router(App)
                 // OAuth flow — handled entirely by axum, outside Dioxus routing.
@@ -101,8 +109,10 @@ fn App() -> Element {
     });
 
     rsx! {
+        document::Meta { name: "viewport", content: "width=device-width, initial-scale=1" }
         document::Link { rel: "icon", href: FAVICON }
         document::Link { rel: "stylesheet", href: MAIN_CSS }
+        document::Script { {THEME_INIT_SCRIPT} }
         Router::<Route> {}
     }
 }

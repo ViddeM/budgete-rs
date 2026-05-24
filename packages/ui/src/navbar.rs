@@ -8,16 +8,31 @@ pub fn Navbar(
     dark_mode: bool,
     on_toggle: EventHandler<()>,
 ) -> Element {
+    let mut nav_open = use_signal(|| false);
     let icon = if dark_mode { "☀" } else { "☾" };
     rsx! {
         nav {
             class: "app-nav",
             span { class: "nav-brand", "Budget" }
-            {children}
-            button {
-                class: "nav-theme-btn",
-                onclick: move |_| on_toggle.call(()),
-                "{icon}"
+            // Nav links: flex row on desktop, collapsible drawer on mobile
+            div {
+                class: if nav_open() { "nav-links nav-links--open" } else { "nav-links" },
+                {children}
+            }
+            // Right-side controls: always visible
+            div {
+                class: "nav-controls",
+                button {
+                    class: "nav-theme-btn",
+                    onclick: move |_| on_toggle.call(()),
+                    "{icon}"
+                }
+                // Hamburger: only visible on mobile via CSS
+                button {
+                    class: "nav-hamburger",
+                    onclick: move |_| *nav_open.write() = !nav_open(),
+                    if nav_open() { "✕" } else { "☰" }
+                }
             }
         }
     }

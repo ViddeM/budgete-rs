@@ -2,6 +2,7 @@
 // Grid column template shared by header and every data row.
 
 $tx-cols: 90px 1fr 72px 150px 100px;
+$tx-cols-mobile: 75px 1fr 90px;
 
 .tx-list {
     font-family: sans-serif;
@@ -83,5 +84,26 @@ $tx-cols: 90px 1fr 72px 150px 100px;
         font-weight: 600;
         font-size: 0.9rem;
         // colour is set inline (positive = income, negative = expense)
+    }
+}
+
+// ── Mobile overrides (≤ 640 px) ───────────────────────────────────────────
+// Collapse to 3 columns: date | description | amount.
+// Source and category columns are hidden.
+
+@media (max-width: 640px) {
+    .tx-list__header {
+        grid-template-columns: $tx-cols-mobile;
+
+        // Hide the source (3rd) and category (4th) header cells
+        > span:nth-child(3),
+        > span:nth-child(4) { display: none; }
+    }
+
+    .tx-row {
+        grid-template-columns: $tx-cols-mobile;
+
+        &__source,
+        &__classify { display: none; }
     }
 }

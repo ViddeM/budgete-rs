@@ -121,3 +121,16 @@
         // colour is set inline (dynamic)
     }
 }
+
+// ── Mobile overrides (≤ 640 px) ───────────────────────────────────────────
+
+@media (max-width: 640px) {
+    .queue-card {
+        padding: 20px 16px;
+        max-width: 100%;
+    }
+
+    .queue-preview__date {
+        min-width: 64px;
+    }
+}

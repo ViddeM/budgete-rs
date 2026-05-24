@@ -41,14 +41,20 @@
 
 .color-input {
     flex-shrink: 0;
-    padding: 2px;
+    padding: 0;
     border: 1px solid var(--border-input);
     cursor: pointer;
     appearance: none;
     -webkit-appearance: none;
+    overflow: hidden; // clips swatch to border-radius
 
     &--lg { width: 36px; height: 36px; border-radius: 8px; }
     &--md { width: 32px; height: 32px; border-radius: 6px; }
+
+    // Remove the inner swatch padding/border so the color fills edge-to-edge
+    &::-webkit-color-swatch-wrapper { padding: 0; }
+    &::-webkit-color-swatch         { border: none; }
+    &::-moz-color-swatch            { border: none; }
 }
 
 // ── Labels ────────────────────────────────────────────────────────────────

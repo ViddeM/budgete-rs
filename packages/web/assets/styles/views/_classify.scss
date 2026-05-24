@@ -5,6 +5,14 @@
     flex-shrink: 0;
 }
 
+// ── Mobile overrides (≤ 640 px) ───────────────────────────────────────────
+
+@media (max-width: 640px) {
+    .classify-col-left {
+        width: 100%;
+    }
+}
+
 // ── Category tree nodes ───────────────────────────────────────────────────
 
 .cat-node {

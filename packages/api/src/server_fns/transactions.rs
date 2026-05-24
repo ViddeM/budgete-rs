@@ -11,6 +11,74 @@ use {
     std::fmt::Write as _,
 };
 
+/// Compute the dedup hash for a parsed CSV row.
+#[cfg(feature = "server")]
+fn compute_dedup_hash(source_str: &str, row: &crate::csv::ParsedRow) -> String {
+    let date_str = row
+        .date
+        .map(|d| d.to_string())
+        .unwrap_or_else(|| "pending".to_string());
+    let hash_input = format!("{}|{}|{}|{}", source_str, date_str, row.description, row.amount);
+    let mut hasher = Sha256::new();
+    hasher.update(hash_input.as_bytes());
+    let hash_bytes = hasher.finalize();
+    let mut dedup_hash = String::with_capacity(64);
+    for b in hash_bytes {
+        write!(dedup_hash, "{b:02x}").unwrap();
+    }
+    dedup_hash
+}
+
+/// Preview what would be imported from a CSV file without modifying the database.
+/// Returns counts of new / duplicate / pending rows.
+#[server]
+pub async fn preview_csv(
+    source: CsvSource,
+    content: String,
+) -> Result<ImportResult, ServerFnError> {
+    let user_id = current_user_id().await?;
+
+    let rows = match source {
+        CsvSource::Amex => csv::amex::parse(&content),
+        CsvSource::Nordea => csv::nordea::parse(&content),
+    }
+    .map_err(ServerFnError::new)?;
+
+    let db = pool();
+    let source_str = source.to_string();
+
+    // Compute all dedup hashes up-front.
+    let hashes: Vec<String> = rows.iter().map(|row| compute_dedup_hash(&source_str, row)).collect();
+
+    // Single batch query to find which hashes already exist.
+    let existing: std::collections::HashSet<String> = sqlx::query_scalar(
+        "SELECT dedup_hash FROM transactions WHERE user_id = $1 AND dedup_hash = ANY($2)",
+    )
+    .bind(user_id)
+    .bind(&hashes[..])
+    .fetch_all(db)
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?
+    .into_iter()
+    .collect();
+
+    let mut imported: u32 = 0;
+    let mut skipped: u32 = 0;
+    let mut pending: u32 = 0;
+
+    for (row, hash) in rows.iter().zip(hashes.iter()) {
+        if existing.contains(hash) {
+            skipped += 1;
+        } else if row.is_pending {
+            pending += 1;
+        } else {
+            imported += 1;
+        }
+    }
+
+    Ok(ImportResult { imported, skipped, pending })
+}
+
 /// Import a CSV file for the current user. Returns counts of imported /
 /// skipped / pending rows.
 #[server]
@@ -30,21 +98,7 @@ pub async fn import_csv(source: CsvSource, content: String) -> Result<ImportResu
     let mut pending: u32 = 0;
 
     for row in rows {
-        let date_str = row
-            .date
-            .map(|d| d.to_string())
-            .unwrap_or_else(|| "pending".to_string());
-        let hash_input = format!(
-            "{}|{}|{}|{}",
-            source_str, date_str, row.description, row.amount
-        );
-        let mut hasher = Sha256::new();
-        hasher.update(hash_input.as_bytes());
-        let hash_bytes = hasher.finalize();
-        let mut dedup_hash = String::with_capacity(64);
-        for b in hash_bytes {
-            write!(dedup_hash, "{b:02x}").unwrap();
-        }
+        let dedup_hash = compute_dedup_hash(&source_str, &row);
 
         let result = sqlx::query(
             r#"

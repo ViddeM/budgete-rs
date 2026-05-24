@@ -1,25 +1,58 @@
-use api::import_csv;
 use api::models::{CsvSource, ImportResult};
+use api::{import_csv, preview_csv};
 use dioxus::prelude::*;
 
 #[component]
 pub fn Upload() -> Element {
     let mut source = use_signal(|| CsvSource::Amex);
+    // Content of the file the user has selected but not yet uploaded.
+    let mut pending_content: Signal<Option<String>> = use_signal(|| None);
+    // Preview counts returned by `preview_csv` (before the real import).
+    let mut preview: Signal<Option<ImportResult>> = use_signal(|| None);
+    // Actual import counts returned by `import_csv` after confirmation.
     let mut result: Signal<Option<ImportResult>> = use_signal(|| None);
     let mut error: Signal<Option<String>> = use_signal(|| None);
     let mut loading = use_signal(|| false);
+    let mut loading_msg: Signal<&'static str> = use_signal(|| "");
 
+    // When the source dropdown changes, update the source and re-run the preview
+    // if a file has already been loaded, so the counts reflect the new format.
+    let on_source_change = move |evt: Event<FormData>| async move {
+        result.set(None);
+        error.set(None);
+        let new_source = match evt.value().as_str() {
+            "nordea" => CsvSource::Nordea,
+            _ => CsvSource::Amex,
+        };
+        source.set(new_source.clone());
+
+        if let Some(content) = pending_content() {
+            preview.set(None);
+            loading.set(true);
+            loading_msg.set("Analysing…");
+            match preview_csv(new_source, content).await {
+                Ok(p) => preview.set(Some(p)),
+                Err(e) => {
+                    error.set(Some(e.to_string()));
+                    pending_content.set(None);
+                }
+            }
+            loading.set(false);
+        }
+    };
+
+    // File selected: read its content, then call preview_csv to show counts
+    // without touching the database yet.
     let on_file_change = move |evt: Event<FormData>| async move {
         error.set(None);
+        preview.set(None);
         result.set(None);
+        pending_content.set(None);
 
         let files = evt.files();
         let file = match files.into_iter().next() {
             Some(f) => f,
-            None => {
-                error.set(Some("No file selected".to_string()));
-                return;
-            }
+            None => return,
         };
 
         let content = match file.read_string().await {
@@ -30,7 +63,28 @@ pub fn Upload() -> Element {
             }
         };
 
+        // Store the content before attempting preview so that if parsing fails
+        // for the wrong source, switching source can re-analyse the same file.
+        pending_content.set(Some(content.clone()));
         loading.set(true);
+        loading_msg.set("Analysing…");
+        match preview_csv(source(), content).await {
+            Ok(p) => preview.set(Some(p)),
+            Err(e) => error.set(Some(e.to_string())),
+        }
+        loading.set(false);
+    };
+
+    // Upload button: commit the already-read file content to the database.
+    let on_upload = move |_| async move {
+        let content = match pending_content.write().take() {
+            Some(c) => c,
+            None => return,
+        };
+        error.set(None);
+        preview.set(None);
+        loading.set(true);
+        loading_msg.set("Importing…");
         match import_csv(source(), content).await {
             Ok(r) => result.set(Some(r)),
             Err(e) => error.set(Some(e.to_string())),
@@ -51,18 +105,13 @@ pub fn Upload() -> Element {
                     label { class: "form-label", "Bank / Source" }
                     select {
                         class: "input-std input-std--full",
-                        onchange: move |evt: Event<FormData>| {
-                            source.set(match evt.value().as_str() {
-                                "nordea" => CsvSource::Nordea,
-                                _ => CsvSource::Amex,
-                            });
-                        },
+                        onchange: on_source_change,
                         option { value: "amex",   "American Express (Amex)" }
                         option { value: "nordea", "Nordea" }
                     }
                 }
 
-                // File picker — triggers import on file selection
+                // File picker — triggers a preview (not the import) on selection
                 div {
                     label { class: "form-label", "CSV file" }
                     input {
@@ -72,11 +121,17 @@ pub fn Upload() -> Element {
                         class: "input-std input-std--full",
                         onchange: on_file_change,
                     }
-                    p { class: "field-hint", "Selecting a file will start the import automatically." }
+                    p { class: "field-hint",
+                        if preview().is_some() {
+                            "File ready — review the preview below and click Upload."
+                        } else {
+                            "Select a CSV file to preview what will be imported."
+                        }
+                    }
                 }
 
                 if loading() {
-                    p { class: "text-loading", "Importing…" }
+                    p { class: "text-loading", "{loading_msg}" }
                 }
             }
 
@@ -84,6 +139,23 @@ pub fn Upload() -> Element {
                 p { class: "form-error", style: "margin-top: 16px;", "{e}" }
             }
 
+            // Preview box — shown after file selection, before the user confirms
+            if let Some(p) = preview() {
+                div {
+                    class: "upload-preview",
+                    p { class: "upload-preview__title", "Ready to import" }
+                    ul {
+                        class: "upload-preview__list",
+                        li { "{p.imported} new transactions" }
+                        li { "{p.skipped} duplicates (already in database)" }
+                        if p.pending > 0 {
+                            li { "{p.pending} pending (no date)" }
+                        }
+                    }
+                }
+            }
+
+            // Success box — shown after a successful import
             if let Some(r) = result() {
                 div {
                     class: "upload-result",
@@ -95,6 +167,14 @@ pub fn Upload() -> Element {
                         li { "{r.pending} pending (no date)" }
                     }
                 }
+            }
+
+            button {
+                class: "btn-primary",
+                style: "margin-top: 20px;",
+                disabled: loading() || pending_content().is_none(),
+                onclick: on_upload,
+                "Upload"
             }
         }
     }

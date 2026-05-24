@@ -28,3 +28,13 @@
         color: var(--text-muted);
     }
 }
+
+// ── Mobile overrides (≤ 640 px) ───────────────────────────────────────────
+
+@media (max-width: 640px) {
+    .stat-card {
+        min-width: 0;
+        flex: 1 1 calc(50% - 8px);
+        padding: 14px 16px;
+    }
+}
