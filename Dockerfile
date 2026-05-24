@@ -25,7 +25,7 @@ COPY ./Cargo.lock .
 
 # Install `dx`
 RUN curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-RUN cargo binstall dioxus-cli --root /.cargo -y --force --version 0.7.3
+RUN cargo binstall dioxus-cli --root /.cargo -y --force --version 0.7.9
 ENV PATH="/.cargo/bin:$PATH"
 
 RUN dx bundle --release --package web
@@ -41,6 +41,5 @@ ENV RUST_LOG=info
 EXPOSE 8080
 
 WORKDIR /usr/local/app
-RUN ls -lah /usr/local/app
-ENTRYPOINT [ "/usr/local/app/web" ]
+ENTRYPOINT [ "/usr/local/app/server" ]
 
