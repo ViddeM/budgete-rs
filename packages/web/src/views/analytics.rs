@@ -1,65 +1,15 @@
 use api::{
     get_spending_by_category, get_spending_over_time, get_transactions, list_groups,
-    models::{CategorySpend, Group, TransactionFilter},
+    models::{Group, TransactionFilter},
 };
 use chrono::{Datelike, Local, NaiveDate};
 use dioxus::prelude::*;
-use rust_decimal::{prelude::ToPrimitive, Decimal};
-use std::collections::{HashMap, HashSet};
+use rust_decimal::prelude::ToPrimitive;
+use std::collections::HashSet;
 use ui::{fmt_amount, TransactionList};
 use uuid::Uuid;
 
-// ---------------------------------------------------------------------------
-// Grouping helper (mirrors dashboard.rs)
-// ---------------------------------------------------------------------------
-
-struct CategoryGroup {
-    id: Uuid,
-    name: String,
-    color: String,
-    total: Decimal,
-    subcategories: Vec<CategorySpend>,
-}
-
-fn build_groups(cats: &[CategorySpend]) -> Vec<CategoryGroup> {
-    let mut map: HashMap<Uuid, CategoryGroup> = HashMap::new();
-
-    for cat in cats {
-        let (gid, gname, gcolor) = if let Some(pid) = cat.parent_id {
-            (
-                pid,
-                cat.parent_name.clone().unwrap_or_default(),
-                cat.parent_color
-                    .clone()
-                    .unwrap_or_else(|| cat.category_color.clone()),
-            )
-        } else {
-            (
-                cat.category_id,
-                cat.category_name.clone(),
-                cat.category_color.clone(),
-            )
-        };
-
-        let entry = map.entry(gid).or_insert_with(|| CategoryGroup {
-            id: gid,
-            name: gname,
-            color: gcolor,
-            total: Decimal::ZERO,
-            subcategories: vec![],
-        });
-
-        entry.total += cat.total;
-
-        if cat.parent_id.is_some() {
-            entry.subcategories.push(cat.clone());
-        }
-    }
-
-    let mut groups: Vec<CategoryGroup> = map.into_values().collect();
-    groups.sort_by(|a, b| b.total.cmp(&a.total));
-    groups
-}
+use super::helpers::build_groups;
 
 // ---------------------------------------------------------------------------
 // Component

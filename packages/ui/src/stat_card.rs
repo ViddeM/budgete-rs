@@ -7,8 +7,7 @@ pub fn StatCard(
     label: String,
     value: String,
     sub_label: Option<String>,
-    #[props(default = "var(--text-primary)".to_string())]
-    value_color: String,
+    #[props(default = "var(--text-primary)".to_string())] value_color: String,
 ) -> Element {
     rsx! {
         div {

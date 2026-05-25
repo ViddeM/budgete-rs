@@ -8,7 +8,11 @@ use crate::format::{contrast_text, hover_filter};
 pub fn CategoryBadge(category: Category) -> Element {
     let mut hovered = use_signal(|| false);
     let text_color = contrast_text(&category.color);
-    let filter = if hovered() { hover_filter(&category.color) } else { "none" };
+    let filter = if hovered() {
+        hover_filter(&category.color)
+    } else {
+        "none"
+    };
     rsx! {
         span {
             class: "badge",

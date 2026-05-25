@@ -2,7 +2,7 @@ use api::models::{Category, Transaction};
 use dioxus::prelude::*;
 
 use crate::category_badge::{CategoryBadge, UnprocessedBadge};
-use crate::format::fmt_tx_amount;
+use crate::format::{fmt_date, fmt_tx_amount, tx_amount_color};
 
 /// Props for an optional classify / reclassify action rendered inside the row.
 /// Pass `None` as the category to remove the classification.
@@ -19,13 +19,10 @@ pub fn TransactionRow(
     classify_action: Option<ClassifyAction>,
 ) -> Element {
     let amount = transaction.amount;
-    let amount_color = if amount >= rust_decimal::Decimal::ZERO { "#16a34a" } else { "#dc2626" };
+    let amount_color = tx_amount_color(amount);
     let amount_str = fmt_tx_amount(amount, &transaction.currency);
 
-    let date_str = transaction
-        .date
-        .map(|d| d.format("%Y-%m-%d").to_string())
-        .unwrap_or_else(|| "Pending".to_string());
+    let date_str = fmt_date(transaction.date);
 
     let cat = transaction.category.clone();
 
@@ -49,7 +46,7 @@ pub fn TransactionRow(
                     onchange: {
                         let tx = transaction.clone();
                         let cats = action.categories.clone();
-                        let handler = action.on_classify.clone();
+                        let handler = action.on_classify;
                         move |evt: Event<FormData>| {
                             let val = evt.value();
                             if val.is_empty() {

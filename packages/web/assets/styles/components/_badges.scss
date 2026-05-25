@@ -1,23 +1,23 @@
 // ── Shared badge base ─────────────────────────────────────────────────────
 
 .badge {
-    padding: 2px 10px;
-    border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    // background-color and color are set inline for CategoryBadge (dynamic)
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  // background-color and color are set inline for CategoryBadge (dynamic)
 }
 
 // ── Unprocessed / no-category badge ──────────────────────────────────────
 
 .badge--unprocessed {
-    background-color: var(--border);
-    color: var(--text-muted);
+  background-color: var(--border);
+  color: var(--text-muted);
 }
 
 // ── Group / project badge ─────────────────────────────────────────────────
 
 .badge--group {
-    background-color: #dbeafe;
-    color: #1d4ed8;
+  background-color: #dbeafe;
+  color: #1d4ed8;
 }

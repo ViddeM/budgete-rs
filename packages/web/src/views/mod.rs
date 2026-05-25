@@ -1,6 +1,7 @@
 mod analytics;
 mod classify;
 mod dashboard;
+mod helpers;
 mod login;
 mod projects;
 mod transactions;

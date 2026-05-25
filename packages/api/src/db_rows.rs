@@ -18,7 +18,13 @@ pub(crate) struct CategoryRow {
 #[cfg(feature = "server")]
 impl From<CategoryRow> for Category {
     fn from(r: CategoryRow) -> Self {
-        Category { id: r.id, name: r.name, color: r.color, parent_id: r.parent_id, ignored: r.ignored }
+        Category {
+            id: r.id,
+            name: r.name,
+            color: r.color,
+            parent_id: r.parent_id,
+            ignored: r.ignored,
+        }
     }
 }
 
@@ -33,7 +39,11 @@ pub(crate) struct GroupRow {
 #[cfg(feature = "server")]
 impl From<GroupRow> for Group {
     fn from(r: GroupRow) -> Self {
-        Group { id: r.id, name: r.name, description: r.description }
+        Group {
+            id: r.id,
+            name: r.name,
+            description: r.description,
+        }
     }
 }
 

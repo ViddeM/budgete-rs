@@ -3,11 +3,7 @@ use dioxus::prelude::*;
 use uuid::Uuid;
 
 #[cfg(feature = "server")]
-use {
-    crate::auth::session::current_user_id,
-    crate::db::pool,
-    crate::db_rows::CategoryRow,
-};
+use {crate::auth::session::current_user_id, crate::db::pool, crate::db_rows::CategoryRow};
 
 /// List all categories for the current user, ordered so each parent is
 /// immediately followed by its subcategories.
@@ -108,14 +104,12 @@ pub async fn classify_transaction(
 ) -> Result<(), ServerFnError> {
     let user_id = current_user_id().await?;
     let db = pool();
-    sqlx::query(
-        "UPDATE transactions SET category_id = $1 WHERE id = $2 AND user_id = $3",
-    )
-    .bind(category_id)
-    .bind(tx_id)
-    .bind(user_id)
-    .execute(db)
-    .await
-    .map_err(|e| ServerFnError::new(e.to_string()))?;
+    sqlx::query("UPDATE transactions SET category_id = $1 WHERE id = $2 AND user_id = $3")
+        .bind(category_id)
+        .bind(tx_id)
+        .bind(user_id)
+        .execute(db)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
     Ok(())
 }

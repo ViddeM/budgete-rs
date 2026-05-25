@@ -355,3 +355,60 @@ The initial UI rendered by the component on the client must be identical to the 
 
 * Use the `use_server_future` hook instead of `use_resource`. It runs the future on the server, serializes the result, and sends it to the client, ensuring the client has the data immediately for its first render.
 * Any code that relies on browser-specific APIs (like accessing `localStorage`) must be run *after* hydration. Place this code inside a `use_effect` hook.
+
+---
+
+## Code Quality
+
+All of the following must pass before committing. CI will enforce them.
+
+### Rust formatting
+
+```sh
+cargo fmt --all
+```
+
+Config lives in `.rustfmt.toml` at the workspace root (`edition = "2021"`, `max_width = 100`).
+Running `cargo fmt --all` must produce no diff.
+
+### Clippy (zero warnings, hard errors)
+
+```sh
+cargo clippy --workspace --all-features -- -D warnings
+```
+
+All warnings are treated as errors. If a lint must be suppressed, add a narrowly-scoped
+`#[allow(clippy::lint_name)]` with a comment explaining why, and flag it for review.
+
+### SCSS formatting
+
+Node.js is required (installed via `fnm` — see below). Prettier is the formatter.
+
+```sh
+# One-time setup (no sudo required)
+curl -fsSL https://fnm.vercel.app/install | bash
+fnm install --lts
+# then restart your shell or eval "$(fnm env)"
+npm install          # installs Prettier from package.json
+```
+
+```sh
+npm run format:scss  # formats all packages/**/*.scss in place
+```
+
+Config lives in `.prettierrc` at the workspace root.
+
+### De-duplication rules
+
+Keep shared logic in the right place — do not inline it in views:
+
+| Concern | Where it lives |
+|---|---|
+| Date formatting (`Option<NaiveDate>` → display string) | `ui::format::fmt_date` |
+| Amount color (green/red CSS string) | `ui::format::tx_amount_color` |
+| Amount display string | `ui::format::fmt_tx_amount` |
+| Category grouping by parent | `web::views::helpers::build_groups` / `CategoryGroup` |
+| Compact tx row with action button | `ui::ProjectTransactionRow` |
+
+Dead scaffold files (`blog.css`, `echo.css`, `hero.css`, `navbar.css`) have been removed.
+Do not re-introduce them.

@@ -27,7 +27,10 @@ pub fn parse(content: &str) -> Result<Vec<ParsedRow>, String> {
         // We do a simple field split that respects double-quoted fields.
         let fields = split_csv_line(line);
         if fields.len() < 3 {
-            return Err(format!("Amex line {line_no}: expected 3 fields, got {}", fields.len()));
+            return Err(format!(
+                "Amex line {line_no}: expected 3 fields, got {}",
+                fields.len()
+            ));
         }
 
         let date_str = fields[0].trim().trim_matches('"');

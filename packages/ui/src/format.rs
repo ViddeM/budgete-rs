@@ -1,3 +1,4 @@
+use chrono::NaiveDate;
 use rust_decimal::{prelude::ToPrimitive, Decimal};
 
 /// Insert a narrow no-break space (U+202F) every three digits from the right
@@ -74,5 +75,22 @@ pub fn hover_filter(hex: &str) -> &'static str {
     match perceived_luminance(hex) {
         Some(l) if l > 155.0 => "brightness(0.88)",
         _ => "brightness(1.18)",
+    }
+}
+
+/// Format an optional transaction date as `"YYYY-MM-DD"`, or `"Pending"` when
+/// the date is `None` (i.e. the transaction is a Nordea *Reserverat* row).
+pub fn fmt_date(date: Option<NaiveDate>) -> String {
+    date.map(|d| d.format("%Y-%m-%d").to_string())
+        .unwrap_or_else(|| "Pending".to_string())
+}
+
+/// Returns the CSS color used to render a transaction amount: green for
+/// income (≥ 0), red for expenses (< 0).
+pub fn tx_amount_color(amount: Decimal) -> &'static str {
+    if amount >= Decimal::ZERO {
+        "#16a34a"
+    } else {
+        "#dc2626"
     }
 }

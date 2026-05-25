@@ -19,15 +19,13 @@ pub async fn get_dashboard_stats() -> Result<DashboardStats, ServerFnError> {
     let db = pool();
 
     let today = chrono::Local::now().date_naive();
-    let month_start =
-        chrono::NaiveDate::from_ymd_opt(today.year(), today.month(), 1).unwrap();
+    let month_start = chrono::NaiveDate::from_ymd_opt(today.year(), today.month(), 1).unwrap();
     let (prev_year, prev_month) = if today.month() == 1 {
         (today.year() - 1, 12u32)
     } else {
         (today.year(), today.month() - 1)
     };
-    let prev_month_start =
-        chrono::NaiveDate::from_ymd_opt(prev_year, prev_month, 1).unwrap();
+    let prev_month_start = chrono::NaiveDate::from_ymd_opt(prev_year, prev_month, 1).unwrap();
 
     // Totals this month
     let totals: TotalsRow = sqlx::query_as(

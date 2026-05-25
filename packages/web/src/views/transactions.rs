@@ -5,13 +5,11 @@ use ui::{ClassifyAction, TransactionList};
 
 #[component]
 pub fn Transactions() -> Element {
-    let mut transactions_res = use_resource(|| async {
-        get_transactions(TransactionFilter::default()).await
-    });
+    let mut transactions_res =
+        use_resource(|| async { get_transactions(TransactionFilter::default()).await });
     let categories_res = use_resource(list_categories);
 
-    let categories: Vec<Category> =
-        categories_res().and_then(|r| r.ok()).unwrap_or_default();
+    let categories: Vec<Category> = categories_res().and_then(|r| r.ok()).unwrap_or_default();
 
     let on_classify = move |(tx, cat): (Transaction, Option<Category>)| async move {
         let _ = classify_transaction(tx.id, cat.map(|c| c.id)).await;

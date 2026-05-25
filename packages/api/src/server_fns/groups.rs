@@ -3,11 +3,7 @@ use dioxus::prelude::*;
 use uuid::Uuid;
 
 #[cfg(feature = "server")]
-use {
-    crate::auth::session::current_user_id,
-    crate::db::pool,
-    crate::db_rows::GroupRow,
-};
+use {crate::auth::session::current_user_id, crate::db::pool, crate::db_rows::GroupRow};
 
 /// List all groups for the current user, newest first.
 #[server]

@@ -1,9 +1,11 @@
 use api::models::{Group, Transaction, TransactionFilter};
-use api::{add_to_group, create_group, delete_group, get_transactions, list_groups, remove_from_group};
+use api::{
+    add_to_group, create_group, delete_group, get_transactions, list_groups, remove_from_group,
+};
 use dioxus::prelude::*;
 use rust_decimal::Decimal;
 use std::collections::HashSet;
-use ui::{fmt_amount, fmt_tx_amount};
+use ui::{fmt_amount, ProjectTransactionRow};
 use uuid::Uuid;
 
 #[component]
@@ -36,9 +38,8 @@ pub fn Projects() -> Element {
     });
 
     // All non-pending transactions — used by the "add" panel.
-    let all_txs_res = use_resource(|| async {
-        get_transactions(TransactionFilter::default()).await
-    });
+    let all_txs_res =
+        use_resource(|| async { get_transactions(TransactionFilter::default()).await });
 
     let create_project = move |_| async move {
         create_error.set(None);
@@ -61,11 +62,12 @@ pub fn Projects() -> Element {
 
     let projects: Vec<Group> = projects_res().and_then(|r| r.ok()).unwrap_or_default();
 
-    let selected_project: Option<Group> =
-        projects.iter().find(|g| Some(g.id) == selected_id()).cloned();
+    let selected_project: Option<Group> = projects
+        .iter()
+        .find(|g| Some(g.id) == selected_id())
+        .cloned();
 
-    let project_txs: Vec<Transaction> =
-        project_txs_res().and_then(|r| r.ok()).unwrap_or_default();
+    let project_txs: Vec<Transaction> = project_txs_res().and_then(|r| r.ok()).unwrap_or_default();
 
     let project_tx_ids: HashSet<Uuid> = project_txs.iter().map(|t| t.id).collect();
 
@@ -148,7 +150,9 @@ pub fn Projects() -> Element {
                     div {
                         class: "project-cards",
                         match projects_res() {
-                            None => rsx! { p { style: "color: var(--text-muted); font-size: 0.9rem;", "Loading…" } },
+                            None => rsx! {
+                                p { style: "color: var(--text-muted); font-size: 0.9rem;", "Loading…" }
+                            },
                             Some(Err(e)) => rsx! { p { class: "text-error", "Error: {e}" } },
                             Some(Ok(_)) if projects.is_empty() => rsx! {
                                 p { style: "color: var(--text-muted); font-size: 0.9rem;", "No projects yet." }
@@ -207,7 +211,8 @@ pub fn Projects() -> Element {
 
                     match selected_project.clone() {
                         None => rsx! {
-                            p { style: "color: var(--text-dim); font-size: 0.95rem; padding: 24px 0;",
+                            p {
+                                style: "color: var(--text-dim); font-size: 0.95rem; padding: 24px 0;",
                                 "Select a project to manage its transactions."
                             }
                         },
@@ -230,10 +235,16 @@ pub fn Projects() -> Element {
                                     class: "project-stats",
                                     span { style: "color: var(--text-secondary);", "{tx_count} transactions" }
                                     if total_expense > Decimal::ZERO {
-                                        span { style: "color: #dc2626; font-weight: 600;", "−{fmt_amount(total_expense)}" }
+                                        span {
+                                            style: "color: #dc2626; font-weight: 600;",
+                                            "−{fmt_amount(total_expense)}"
+                                        }
                                     }
                                     if total_income > Decimal::ZERO {
-                                        span { style: "color: #16a34a; font-weight: 600;", "+{fmt_amount(total_income)}" }
+                                        span {
+                                            style: "color: #16a34a; font-weight: 600;",
+                                            "+{fmt_amount(total_income)}"
+                                        }
                                     }
                                 }
                             }
@@ -253,41 +264,15 @@ pub fn Projects() -> Element {
                                         class: "project-tx-list",
                                         for tx in project_txs.iter() {
                                             {
-                                                let tid = tx.id;
                                                 let project_id = project.id;
-                                                let date_str = tx.date
-                                                    .map(|d| d.format("%Y-%m-%d").to_string())
-                                                    .unwrap_or_else(|| "Pending".to_string());
-                                                let amount_str = fmt_tx_amount(tx.amount, &tx.currency);
-                                                let amount_color = if tx.amount >= Decimal::ZERO { "#16a34a" } else { "#dc2626" };
-                                                let desc = tx.description.clone();
-                                                let cat_name = tx.category.as_ref().map(|c| c.name.clone());
                                                 rsx! {
-                                                    div {
-                                                        key: "{tid}",
-                                                        class: "project-tx-row",
-                                                        span { class: "project-row__date", "{date_str}" }
-                                                        span {
-                                                            class: "project-row__desc",
-                                                            style: "font-size: 0.88rem; color: var(--text-secondary);",
-                                                            "{desc}"
-                                                        }
-                                                        if let Some(cat) = cat_name {
-                                                            span { class: "project-row__cat", "{cat}" }
-                                                        }
-                                                        span {
-                                                            class: "project-row__amount",
-                                                            style: "font-size: 0.88rem; color: {amount_color};",
-                                                            "{amount_str}"
-                                                        }
-                                                        button {
-                                                            onclick: move |_| async move {
-                                                                let _ = remove_from_group(tid, project_id).await;
-                                                                project_txs_res.restart();
-                                                            },
-                                                            class: "btn-ghost btn-ghost--sm",
-                                                            "Remove"
-                                                        }
+                                                    ProjectTransactionRow {
+                                                        transaction: tx.clone(),
+                                                        action_label: "Remove".to_string(),
+                                                        on_action: move |tid| async move {
+                                                            let _ = remove_from_group(tid, project_id).await;
+                                                            project_txs_res.restart();
+                                                        },
                                                     }
                                                 }
                                             }
@@ -329,41 +314,15 @@ pub fn Projects() -> Element {
                                         class: "project-available",
                                         for tx in filtered_available.iter() {
                                             {
-                                                let tid = tx.id;
                                                 let project_id = project.id;
-                                                let date_str = tx.date
-                                                    .map(|d| d.format("%Y-%m-%d").to_string())
-                                                    .unwrap_or_else(|| "Pending".to_string());
-                                                let amount_str = fmt_tx_amount(tx.amount, &tx.currency);
-                                                let amount_color = if tx.amount >= Decimal::ZERO { "#16a34a" } else { "#dc2626" };
-                                                let desc = tx.description.clone();
-                                                let cat_name = tx.category.as_ref().map(|c| c.name.clone());
                                                 rsx! {
-                                                    div {
-                                                        key: "{tid}",
-                                                        class: "project-add-row",
-                                                        span { class: "project-row__date", "{date_str}" }
-                                                        span {
-                                                            class: "project-row__desc",
-                                                            style: "font-size: 0.85rem; color: var(--text-secondary);",
-                                                            "{desc}"
-                                                        }
-                                                        if let Some(cat) = cat_name {
-                                                            span { class: "project-row__cat", "{cat}" }
-                                                        }
-                                                        span {
-                                                            class: "project-row__amount",
-                                                            style: "font-size: 0.85rem; color: {amount_color};",
-                                                            "{amount_str}"
-                                                        }
-                                                        button {
-                                                            onclick: move |_| async move {
-                                                                let _ = add_to_group(tid, project_id).await;
-                                                                project_txs_res.restart();
-                                                            },
-                                                            class: "btn-primary btn-primary--sm",
-                                                            "Add"
-                                                        }
+                                                    ProjectTransactionRow {
+                                                        transaction: (*tx).clone(),
+                                                        action_label: "Add".to_string(),
+                                                        on_action: move |tid| async move {
+                                                            let _ = add_to_group(tid, project_id).await;
+                                                            project_txs_res.restart();
+                                                        },
                                                     }
                                                 }
                                             }

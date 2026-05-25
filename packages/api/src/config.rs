@@ -104,14 +104,14 @@ impl AppConfig {
             None
         } else {
             Some(OAuthConfig {
-                client_id:              require("OAUTH_CLIENT_ID"),
-                client_secret:          require("OAUTH_CLIENT_SECRET"),
-                auth_url:               require_url("OAUTH_AUTH_URL"),
-                token_url:              require_url("OAUTH_TOKEN_URL"),
-                userinfo_url:           require_url("OAUTH_USERINFO_URL"),
-                redirect_url:           require_url("OAUTH_REDIRECT_URL"),
-                scopes:                 optional("OAUTH_SCOPES", "openid email profile"),
-                provider_name:          optional("OAUTH_PROVIDER_NAME", "oauth"),
+                client_id: require("OAUTH_CLIENT_ID"),
+                client_secret: require("OAUTH_CLIENT_SECRET"),
+                auth_url: require_url("OAUTH_AUTH_URL"),
+                token_url: require_url("OAUTH_TOKEN_URL"),
+                userinfo_url: require_url("OAUTH_USERINFO_URL"),
+                redirect_url: require_url("OAUTH_REDIRECT_URL"),
+                scopes: optional("OAUTH_SCOPES", "openid email profile"),
+                provider_name: optional("OAUTH_PROVIDER_NAME", "oauth"),
                 session_duration_hours: optional("SESSION_DURATION_HOURS", "720")
                     .parse()
                     .expect("SESSION_DURATION_HOURS must be a valid integer"),

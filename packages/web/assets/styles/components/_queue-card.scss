@@ -1,136 +1,136 @@
 // ── Queue card (single transaction for classification) ────────────────────
 
 .queue-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 28px 32px;
-    max-width: 560px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 32px;
+  max-width: 560px;
 
-    &__meta {
-        font-size: 0.78rem;
-        color: var(--text-dim);
-        margin: 0 0 6px;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
+  &__meta {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    margin: 0 0 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
 
-    &__desc {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin: 0 0 10px;
-        line-height: 1.4;
-    }
+  &__desc {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 10px;
+    line-height: 1.4;
+  }
 
-    &__amount {
-        font-size: 2rem;
-        font-weight: 700;
-        margin: 0 0 28px;
-        // colour is set inline (dynamic)
-    }
+  &__amount {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0 0 28px;
+    // colour is set inline (dynamic)
+  }
 
-    &__no-cats {
-        font-size: 0.85rem;
-        color: var(--text-dim);
-    }
+  &__no-cats {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
 
-    &__pick-label {
-        font-size: 0.75rem;
-        font-weight: 700;
-        color: var(--text-muted);
-        margin: 0 0 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
+  &__pick-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin: 0 0 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
 
-    &__groups {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
+  &__groups {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
 
-    &__group-label {
-        font-size: 0.72rem;
-        font-weight: 700;
-        color: var(--text-dim);
-        margin: 0 0 6px;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
+  &__group-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-dim);
+    margin: 0 0 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
 
-    &__subcats {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-    }
+  &__subcats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
 }
 
 // ── Subcategory pick button ────────────────────────────────────────────────
 // bg / color / filter stay inline — they come from the category's colour.
 
 .cat-btn {
-    border: none;
-    padding: 8px 20px;
-    border-radius: 999px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: filter 0.15s ease;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s ease;
 }
 
 // ── Upcoming queue preview (ghosted rows below the active card) ───────────
 
 .queue-preview {
-    margin-top: 12px;
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  opacity: 0.45;
+  pointer-events: none;
+  user-select: none;
+
+  &__row {
     display: flex;
-    flex-direction: column;
-    gap: 1px;
-    opacity: 0.45;
-    pointer-events: none;
-    user-select: none;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
 
-    &__row {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 10px 16px;
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        border-radius: 10px;
-    }
+  &__date {
+    min-width: 86px;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+  }
 
-    &__date {
-        min-width: 86px;
-        font-size: 0.78rem;
-        color: var(--text-dim);
-    }
+  &__desc {
+    flex: 1;
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
-    &__desc {
-        flex: 1;
-        font-size: 0.88rem;
-        color: var(--text-secondary);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    &__amount {
-        font-size: 0.88rem;
-        font-weight: 600;
-        // colour is set inline (dynamic)
-    }
+  &__amount {
+    font-size: 0.88rem;
+    font-weight: 600;
+    // colour is set inline (dynamic)
+  }
 }
 
 // ── Mobile overrides (≤ 640 px) ───────────────────────────────────────────
 
 @media (max-width: 640px) {
-    .queue-card {
-        padding: 20px 16px;
-        max-width: 100%;
-    }
+  .queue-card {
+    padding: 20px 16px;
+    max-width: 100%;
+  }
 
-    .queue-preview__date {
-        min-width: 64px;
-    }
+  .queue-preview__date {
+    min-width: 64px;
+  }
 }

@@ -18,7 +18,10 @@ fn compute_dedup_hash(source_str: &str, row: &crate::csv::ParsedRow) -> String {
         .date
         .map(|d| d.to_string())
         .unwrap_or_else(|| "pending".to_string());
-    let hash_input = format!("{}|{}|{}|{}", source_str, date_str, row.description, row.amount);
+    let hash_input = format!(
+        "{}|{}|{}|{}",
+        source_str, date_str, row.description, row.amount
+    );
     let mut hasher = Sha256::new();
     hasher.update(hash_input.as_bytes());
     let hash_bytes = hasher.finalize();
@@ -48,7 +51,10 @@ pub async fn preview_csv(
     let source_str = source.to_string();
 
     // Compute all dedup hashes up-front.
-    let hashes: Vec<String> = rows.iter().map(|row| compute_dedup_hash(&source_str, row)).collect();
+    let hashes: Vec<String> = rows
+        .iter()
+        .map(|row| compute_dedup_hash(&source_str, row))
+        .collect();
 
     // Single batch query to find which hashes already exist.
     let existing: std::collections::HashSet<String> = sqlx::query_scalar(
@@ -76,7 +82,11 @@ pub async fn preview_csv(
         }
     }
 
-    Ok(ImportResult { imported, skipped, pending })
+    Ok(ImportResult {
+        imported,
+        skipped,
+        pending,
+    })
 }
 
 /// Import a CSV file for the current user. Returns counts of imported /
@@ -128,7 +138,11 @@ pub async fn import_csv(source: CsvSource, content: String) -> Result<ImportResu
         }
     }
 
-    Ok(ImportResult { imported, skipped, pending })
+    Ok(ImportResult {
+        imported,
+        skipped,
+        pending,
+    })
 }
 
 /// Fetch transactions for the current user with optional filtering.
@@ -225,8 +239,16 @@ pub async fn get_queue_state() -> Result<QueueState, ServerFnError> {
     .map_err(|e| ServerFnError::new(e.to_string()))?;
 
     let mut items: Vec<Transaction> = rows.into_iter().map(Into::into).collect();
-    let next = if items.is_empty() { None } else { Some(items.remove(0)) };
+    let next = if items.is_empty() {
+        None
+    } else {
+        Some(items.remove(0))
+    };
     let upcoming = items; // at most 3
 
-    Ok(QueueState { next, upcoming, remaining })
+    Ok(QueueState {
+        next,
+        upcoming,
+        remaining,
+    })
 }

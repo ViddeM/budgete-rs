@@ -13,24 +13,20 @@ const SESSION_COOKIE: &str = "session";
 /// Parse the session token UUID from the `Cookie` request header.
 pub(crate) fn session_token_from_headers(headers: &HeaderMap) -> Option<Uuid> {
     let cookie_header = headers.get("cookie")?.to_str().ok()?;
-    cookie_header
-        .split(';')
-        .find_map(|part| {
-            let part = part.trim();
-            let (key, val) = part.split_once('=')?;
-            if key.trim() == SESSION_COOKIE {
-                Uuid::parse_str(val.trim()).ok()
-            } else {
-                None
-            }
-        })
+    cookie_header.split(';').find_map(|part| {
+        let part = part.trim();
+        let (key, val) = part.split_once('=')?;
+        if key.trim() == SESSION_COOKIE {
+            Uuid::parse_str(val.trim()).ok()
+        } else {
+            None
+        }
+    })
 }
 
 /// Build a `Set-Cookie` header value that sets the session cookie.
 pub(crate) fn set_session_cookie(token: Uuid, max_age_secs: i64) -> String {
-    format!(
-        "{SESSION_COOKIE}={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={max_age_secs}"
-    )
+    format!("{SESSION_COOKIE}={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={max_age_secs}")
 }
 
 /// Build a `Set-Cookie` header value that clears the session cookie.
@@ -47,8 +43,7 @@ pub(crate) fn clear_session_cookie() -> String {
 /// This UUID is used as the `user_id` for every request when `LOCAL_MODE=true`.
 /// The corresponding DB row is created by [`ensure_local_user()`] at startup.
 pub const LOCAL_USER_ID: Uuid = Uuid::from_bytes([
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
 ]);
 
 /// Ensure the local-mode user row exists in the `users` table.
@@ -123,16 +118,13 @@ pub(crate) async fn create_session(
 
 /// Look up `user_id` for a session token.  Returns `None` if the token is
 /// unknown or has expired.
-pub(crate) async fn get_user_id_from_token(
-    token: Uuid,
-) -> Result<Option<Uuid>, sqlx::Error> {
+pub(crate) async fn get_user_id_from_token(token: Uuid) -> Result<Option<Uuid>, sqlx::Error> {
     let db = pool();
-    let user_id: Option<Uuid> = sqlx::query_scalar(
-        "SELECT user_id FROM sessions WHERE token = $1 AND expires_at > NOW()",
-    )
-    .bind(token)
-    .fetch_optional(db)
-    .await?;
+    let user_id: Option<Uuid> =
+        sqlx::query_scalar("SELECT user_id FROM sessions WHERE token = $1 AND expires_at > NOW()")
+            .bind(token)
+            .fetch_optional(db)
+            .await?;
     Ok(user_id)
 }
 
@@ -161,8 +153,7 @@ pub async fn current_user_id() -> Result<Uuid, ServerFnError> {
 
     use dioxus::prelude::dioxus_fullstack::FullstackContext;
 
-    let ctx = FullstackContext::current()
-        .ok_or_else(|| ServerFnError::new("Not authenticated"))?;
+    let ctx = FullstackContext::current().ok_or_else(|| ServerFnError::new("Not authenticated"))?;
     let headers = ctx.parts_mut().headers.clone();
     let token = session_token_from_headers(&headers)
         .ok_or_else(|| ServerFnError::new("Not authenticated"))?;

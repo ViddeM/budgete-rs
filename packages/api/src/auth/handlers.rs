@@ -34,9 +34,7 @@ pub async fn login_handler() -> Response {
     );
 
     // Store state in a short-lived cookie so we can verify it on callback.
-    let state_cookie = format!(
-        "oauth_state={state}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600"
-    );
+    let state_cookie = format!("oauth_state={state}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600");
 
     (
         StatusCode::FOUND,
@@ -70,7 +68,11 @@ pub async fn callback_handler(
             cookies.split(';').find_map(|part| {
                 let part = part.trim();
                 let (k, v) = part.split_once('=')?;
-                if k.trim() == "oauth_state" { Some(v.trim().to_string()) } else { None }
+                if k.trim() == "oauth_state" {
+                    Some(v.trim().to_string())
+                } else {
+                    None
+                }
             })
         });
 
@@ -231,10 +233,13 @@ fn urlenccode(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for b in s.bytes() {
         match b {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9'
-            | b'-' | b'_' | b'.' | b'~' => out.push(b as char),
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                out.push(b as char)
+            }
             b' ' => out.push('+'),
-            _ => { let _ = std::fmt::Write::write_fmt(&mut out, format_args!("%{b:02X}")); }
+            _ => {
+                let _ = std::fmt::Write::write_fmt(&mut out, format_args!("%{b:02X}"));
+            }
         }
     }
     out

@@ -4,8 +4,8 @@ use api::{
     update_category,
 };
 use dioxus::prelude::*;
+use ui::{fmt_date, fmt_tx_amount, tx_amount_color, TransactionQueueCard};
 use uuid::Uuid;
-use ui::{fmt_tx_amount, TransactionQueueCard};
 
 #[component]
 pub fn Classify() -> Element {
@@ -118,12 +118,13 @@ pub fn Classify() -> Element {
 
     // ── Derived data ───────────────────────────────────────────────────────
 
-    let categories: Vec<Category> = categories_res()
-        .and_then(|r| r.ok())
-        .unwrap_or_default();
+    let categories: Vec<Category> = categories_res().and_then(|r| r.ok()).unwrap_or_default();
 
-    let top_level: Vec<Category> =
-        categories.iter().filter(|c| c.parent_id.is_none()).cloned().collect();
+    let top_level: Vec<Category> = categories
+        .iter()
+        .filter(|c| c.parent_id.is_none())
+        .cloned()
+        .collect();
 
     rsx! {
         div {
@@ -491,11 +492,8 @@ pub fn Classify() -> Element {
                                             class: "upcoming-preview",
                                             for tx in state.upcoming.iter() {
                                                 {
-                                                    use rust_decimal::Decimal;
-                                                    let date_str = tx.date
-                                                        .map(|d| d.format("%Y-%m-%d").to_string())
-                                                        .unwrap_or_else(|| "Pending".to_string());
-                                                    let amount_color = if tx.amount >= Decimal::ZERO { "#16a34a" } else { "#dc2626" };
+                                                    let date_str = fmt_date(tx.date);
+                                                    let amount_color = tx_amount_color(tx.amount);
                                                     let amount_str = fmt_tx_amount(tx.amount, &tx.currency);
                                                     rsx! {
                                                         div {

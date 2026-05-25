@@ -1,47 +1,51 @@
 // ── Page layout primitives ────────────────────────────────────────────────
 
 .view {
-    padding: 32px;
-    font-family: sans-serif;
+  padding: 32px;
+  font-family: sans-serif;
 
-    &--narrow { max-width: 560px; }
-    &--wide   { max-width: 960px; }
+  &--narrow {
+    max-width: 560px;
+  }
+  &--wide {
+    max-width: 960px;
+  }
 }
 
 .view__title {
-    margin: 0 0 24px;
-    font-size: 1.5rem;
-    color: var(--text-primary);
+  margin: 0 0 24px;
+  font-size: 1.5rem;
+  color: var(--text-primary);
 }
 
 .view__section-title {
-    font-size: 1rem;
-    color: var(--text-secondary);
-    margin-bottom: 12px;
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
 }
 
 // ── Two-column layout ─────────────────────────────────────────────────────
 
 .two-col {
-    display: flex;
-    gap: 32px;
-    align-items: flex-start;
+  display: flex;
+  gap: 32px;
+  align-items: flex-start;
 
-    &__right {
-        flex: 1;
-        min-width: 0;
-    }
+  &__right {
+    flex: 1;
+    min-width: 0;
+  }
 }
 
 // ── Mobile overrides (≤ 640 px) ───────────────────────────────────────────
 
 @media (max-width: 640px) {
-    .view {
-        padding: 16px;
-    }
+  .view {
+    padding: 16px;
+  }
 
-    .two-col {
-        flex-direction: column;
-        gap: 24px;
-    }
+  .two-col {
+    flex-direction: column;
+    gap: 24px;
+  }
 }

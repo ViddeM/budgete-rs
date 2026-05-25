@@ -15,7 +15,11 @@ pub fn TransactionQueueCard(
     on_classify: EventHandler<(Transaction, Category)>,
 ) -> Element {
     let amount = transaction.amount;
-    let amount_color = if amount >= rust_decimal::Decimal::ZERO { "#16a34a" } else { "#dc2626" };
+    let amount_color = if amount >= rust_decimal::Decimal::ZERO {
+        "#16a34a"
+    } else {
+        "#dc2626"
+    };
     let amount_str = fmt_tx_amount(amount, &transaction.currency);
 
     let date_str = transaction
@@ -24,8 +28,10 @@ pub fn TransactionQueueCard(
         .unwrap_or_else(|| "Pending".to_string());
 
     // Separate into top-level and subcategories.
-    let parents: Vec<&Category> =
-        categories.iter().filter(|c| c.parent_id.is_none()).collect();
+    let parents: Vec<&Category> = categories
+        .iter()
+        .filter(|c| c.parent_id.is_none())
+        .collect();
     let has_any_subcats = categories.iter().any(|c| c.parent_id.is_some());
 
     rsx! {
@@ -62,7 +68,7 @@ pub fn TransactionQueueCard(
                                                     key: "{sub.id}",
                                                     category: (*sub).clone(),
                                                     transaction: transaction.clone(),
-                                                    on_classify: on_classify.clone(),
+                                                    on_classify,
                                                 }
                                             }
                                         }
@@ -86,7 +92,11 @@ fn CategoryButton(
 ) -> Element {
     let mut hovered = use_signal(|| false);
     let text_color = contrast_text(&category.color);
-    let filter = if hovered() { hover_filter(&category.color) } else { "none" };
+    let filter = if hovered() {
+        hover_filter(&category.color)
+    } else {
+        "none"
+    };
     rsx! {
         button {
             class: "cat-btn",

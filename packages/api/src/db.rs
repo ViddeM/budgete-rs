@@ -26,5 +26,6 @@ pub async fn init_pool() -> Result<(), sqlx::Error> {
 /// Get a reference to the global pool. Panics if `init_pool` has not been called.
 #[cfg(feature = "server")]
 pub fn pool() -> &'static PgPool {
-    POOL.get().expect("database pool not initialized — call init_pool() at startup")
+    POOL.get()
+        .expect("database pool not initialized — call init_pool() at startup")
 }

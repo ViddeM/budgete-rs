@@ -1,12 +1,11 @@
-use api::{
-    get_dashboard_stats,
-    models::{CategorySpend, DashboardStats},
-};
+use api::{get_dashboard_stats, models::DashboardStats};
 use dioxus::prelude::*;
 use rust_decimal::{prelude::ToPrimitive, Decimal};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use ui::{fmt_amount, StatCard};
 use uuid::Uuid;
+
+use super::helpers::{build_groups, CategoryGroup};
 
 #[component]
 pub fn Dashboard() -> Element {
@@ -17,60 +16,6 @@ pub fn Dashboard() -> Element {
         Some(Err(e)) => rsx! { p { class: "text-error", "Error: {e}" } },
         Some(Ok(s)) => rsx! { DashboardContent { stats: s } },
     }
-}
-
-// ---------------------------------------------------------------------------
-// Grouping helper
-// ---------------------------------------------------------------------------
-
-struct CategoryGroup {
-    id: Uuid,
-    name: String,
-    color: String,
-    total: Decimal,
-    subcategories: Vec<CategorySpend>,
-}
-
-/// Group a flat `CategorySpend` list by top-level category, summing subcategory
-/// totals under their parent. Returns groups sorted by total descending.
-fn build_groups(cats: &[CategorySpend]) -> Vec<CategoryGroup> {
-    let mut map: HashMap<Uuid, CategoryGroup> = HashMap::new();
-
-    for cat in cats {
-        let (gid, gname, gcolor) = if let Some(pid) = cat.parent_id {
-            (
-                pid,
-                cat.parent_name.clone().unwrap_or_default(),
-                cat.parent_color
-                    .clone()
-                    .unwrap_or_else(|| cat.category_color.clone()),
-            )
-        } else {
-            (
-                cat.category_id,
-                cat.category_name.clone(),
-                cat.category_color.clone(),
-            )
-        };
-
-        let entry = map.entry(gid).or_insert_with(|| CategoryGroup {
-            id: gid,
-            name: gname,
-            color: gcolor,
-            total: Decimal::ZERO,
-            subcategories: vec![],
-        });
-
-        entry.total += cat.total;
-
-        if cat.parent_id.is_some() {
-            entry.subcategories.push(cat.clone());
-        }
-    }
-
-    let mut groups: Vec<CategoryGroup> = map.into_values().collect();
-    groups.sort_by(|a, b| b.total.cmp(&a.total));
-    groups
 }
 
 // ---------------------------------------------------------------------------
@@ -85,7 +30,11 @@ fn DashboardContent(stats: DashboardStats) -> Element {
     });
 
     let balance = stats.month_income - stats.month_expenses;
-    let balance_color = if balance >= Decimal::ZERO { "#16a34a" } else { "#dc2626" };
+    let balance_color = if balance >= Decimal::ZERO {
+        "#16a34a"
+    } else {
+        "#dc2626"
+    };
 
     let top5: Vec<CategoryGroup> = build_groups(&stats.top_categories)
         .into_iter()
