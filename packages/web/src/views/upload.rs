@@ -25,6 +25,7 @@ pub fn Upload() -> Element {
         let new_source = match evt.value().as_str() {
             "nordea" => ImportSource::Nordea,
             "klarna" => ImportSource::Klarna,
+            "ica" => ImportSource::Ica,
             _ => ImportSource::Amex,
         };
         source.set(new_source.clone());
@@ -113,7 +114,6 @@ pub fn Upload() -> Element {
     } else {
         ".csv,text/csv"
     };
-
     rsx! {
         div {
             class: "view view--narrow",
@@ -131,6 +131,7 @@ pub fn Upload() -> Element {
                         option { value: "amex",   "American Express (Amex)" }
                         option { value: "nordea", "Nordea" }
                         option { value: "klarna", "Klarna (Monthly invoice PDF)" }
+                        option { value: "ica",    "ICA Bank" }
                     }
                 }
 

@@ -45,6 +45,7 @@ fn parse_content(
     match source {
         ImportSource::Amex => csv::amex::parse(content),
         ImportSource::Nordea => csv::nordea::parse(content),
+        ImportSource::Ica => csv::ica::parse(content),
         ImportSource::Klarna => {
             let pdf_bytes = base64::engine::general_purpose::STANDARD
                 .decode(content)
