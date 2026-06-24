@@ -1,11 +1,13 @@
-use api::models::{CsvSource, ImportResult};
+use api::models::{ImportResult, ImportSource};
 use api::{import_csv, preview_csv};
+use base64::Engine as _;
 use dioxus::prelude::*;
 
 #[component]
 pub fn Upload() -> Element {
-    let mut source = use_signal(|| CsvSource::Amex);
+    let mut source = use_signal(|| ImportSource::Amex);
     // Content of the file the user has selected but not yet uploaded.
+    // For CSV sources this is the raw UTF-8 text; for Klarna it is base64-encoded PDF bytes.
     let mut pending_content: Signal<Option<String>> = use_signal(|| None);
     // Preview counts returned by `preview_csv` (before the real import).
     let mut preview: Signal<Option<ImportResult>> = use_signal(|| None);
@@ -21,8 +23,9 @@ pub fn Upload() -> Element {
         result.set(None);
         error.set(None);
         let new_source = match evt.value().as_str() {
-            "nordea" => CsvSource::Nordea,
-            _ => CsvSource::Amex,
+            "nordea" => ImportSource::Nordea,
+            "klarna" => ImportSource::Klarna,
+            _ => ImportSource::Amex,
         };
         source.set(new_source.clone());
 
@@ -55,11 +58,23 @@ pub fn Upload() -> Element {
             None => return,
         };
 
-        let content = match file.read_string().await {
-            Ok(c) => c,
-            Err(e) => {
-                error.set(Some(format!("Could not read file: {e}")));
-                return;
+        // Klarna PDFs are binary — read as bytes and base64-encode for transport.
+        // All other sources are UTF-8 CSV text — read directly as a string.
+        let content = if source() == ImportSource::Klarna {
+            match file.read_bytes().await {
+                Ok(bytes) => base64::engine::general_purpose::STANDARD.encode(&bytes),
+                Err(e) => {
+                    error.set(Some(format!("Could not read file: {e}")));
+                    return;
+                }
+            }
+        } else {
+            match file.read_string().await {
+                Ok(c) => c,
+                Err(e) => {
+                    error.set(Some(format!("Could not read file: {e}")));
+                    return;
+                }
             }
         };
 
@@ -92,6 +107,13 @@ pub fn Upload() -> Element {
         loading.set(false);
     };
 
+    // File input accept attribute depends on the selected source.
+    let file_accept = if source() == ImportSource::Klarna {
+        "application/pdf,.pdf"
+    } else {
+        ".csv,text/csv"
+    };
+
     rsx! {
         div {
             class: "view view--narrow",
@@ -108,15 +130,16 @@ pub fn Upload() -> Element {
                         onchange: on_source_change,
                         option { value: "amex",   "American Express (Amex)" }
                         option { value: "nordea", "Nordea" }
+                        option { value: "klarna", "Klarna (Monthly invoice PDF)" }
                     }
                 }
 
                 // File picker — triggers a preview (not the import) on selection
                 div {
-                    label { class: "form-label", "CSV file" }
+                    label { class: "form-label", "File" }
                     input {
                         r#type: "file",
-                        accept: ".csv,text/csv",
+                        accept: file_accept,
                         disabled: loading(),
                         class: "input-std input-std--full",
                         onchange: on_file_change,
@@ -124,6 +147,8 @@ pub fn Upload() -> Element {
                     p { class: "field-hint",
                         if preview().is_some() {
                             "File ready — review the preview below and click Upload."
+                        } else if source() == ImportSource::Klarna {
+                            "Select the Klarna Monthly invoice PDF to preview what will be imported."
                         } else {
                             "Select a CSV file to preview what will be imported."
                         }

@@ -13,6 +13,7 @@ pub struct ParsedRow {
 }
 
 pub mod amex;
+pub mod klarna;
 pub mod nordea;
 
 // ---------------------------------------------------------------------------

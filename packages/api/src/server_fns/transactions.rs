@@ -1,4 +1,4 @@
-use crate::models::{CsvSource, ImportResult, QueueState, Transaction, TransactionFilter};
+use crate::models::{ImportResult, ImportSource, QueueState, Transaction, TransactionFilter};
 use dioxus::prelude::*;
 
 #[cfg(feature = "server")]
@@ -7,6 +7,7 @@ use {
     crate::csv,
     crate::db::pool,
     crate::db_rows::TransactionRow,
+    base64::Engine as _,
     sha2::{Digest, Sha256},
     std::fmt::Write as _,
 };
@@ -32,20 +33,40 @@ fn compute_dedup_hash(source_str: &str, row: &crate::csv::ParsedRow) -> String {
     dedup_hash
 }
 
-/// Preview what would be imported from a CSV file without modifying the database.
+/// Parse the import content for any supported source into [`ParsedRow`]s.
+///
+/// - CSV sources: `content` is raw UTF-8 text.
+/// - Klarna: `content` is the PDF bytes encoded as standard base64.
+#[cfg(feature = "server")]
+fn parse_content(
+    source: &ImportSource,
+    content: &str,
+) -> Result<Vec<crate::csv::ParsedRow>, String> {
+    match source {
+        ImportSource::Amex => csv::amex::parse(content),
+        ImportSource::Nordea => csv::nordea::parse(content),
+        ImportSource::Klarna => {
+            let pdf_bytes = base64::engine::general_purpose::STANDARD
+                .decode(content)
+                .map_err(|e| format!("Invalid base64 for Klarna PDF: {e}"))?;
+            csv::klarna::parse(&pdf_bytes)
+        }
+    }
+}
+
+/// Preview what would be imported without modifying the database.
 /// Returns counts of new / duplicate / pending rows.
+///
+/// For CSV sources (`Amex`, `Nordea`) `content` is the raw UTF-8 file text.
+/// For `Klarna` `content` is the PDF file bytes encoded as standard base64.
 #[server]
 pub async fn preview_csv(
-    source: CsvSource,
+    source: ImportSource,
     content: String,
 ) -> Result<ImportResult, ServerFnError> {
     let user_id = current_user_id().await?;
 
-    let rows = match source {
-        CsvSource::Amex => csv::amex::parse(&content),
-        CsvSource::Nordea => csv::nordea::parse(&content),
-    }
-    .map_err(ServerFnError::new)?;
+    let rows = parse_content(&source, &content).map_err(ServerFnError::new)?;
 
     let db = pool();
     let source_str = source.to_string();
@@ -89,17 +110,18 @@ pub async fn preview_csv(
     })
 }
 
-/// Import a CSV file for the current user. Returns counts of imported /
-/// skipped / pending rows.
+/// Import a file for the current user. Returns counts of imported / skipped / pending rows.
+///
+/// For CSV sources (`Amex`, `Nordea`) `content` is the raw UTF-8 file text.
+/// For `Klarna` `content` is the PDF file bytes encoded as standard base64.
 #[server]
-pub async fn import_csv(source: CsvSource, content: String) -> Result<ImportResult, ServerFnError> {
+pub async fn import_csv(
+    source: ImportSource,
+    content: String,
+) -> Result<ImportResult, ServerFnError> {
     let user_id = current_user_id().await?;
 
-    let rows = match source {
-        CsvSource::Amex => csv::amex::parse(&content),
-        CsvSource::Nordea => csv::nordea::parse(&content),
-    }
-    .map_err(ServerFnError::new)?;
+    let rows = parse_content(&source, &content).map_err(ServerFnError::new)?;
 
     let db = pool();
     let source_str = source.to_string();
