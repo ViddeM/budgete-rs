@@ -140,6 +140,7 @@ dependencies = [
  "chrono",
  "dioxus",
  "dotenvy",
+ "encoding_rs",
  "pdf-extract",
  "reqwest",
  "rust_decimal",

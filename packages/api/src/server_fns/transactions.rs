@@ -52,6 +52,12 @@ fn parse_content(
                 .map_err(|e| format!("Invalid base64 for Klarna PDF: {e}"))?;
             csv::klarna::parse(&pdf_bytes)
         }
+        ImportSource::Swedbank => {
+            let bytes = base64::engine::general_purpose::STANDARD
+                .decode(content)
+                .map_err(|e| format!("Invalid base64 for Swedbank CSV: {e}"))?;
+            csv::swedbank::parse(&bytes)
+        }
     }
 }
 

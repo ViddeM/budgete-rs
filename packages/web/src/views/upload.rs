@@ -26,6 +26,7 @@ pub fn Upload() -> Element {
             "nordea" => ImportSource::Nordea,
             "klarna" => ImportSource::Klarna,
             "ica" => ImportSource::Ica,
+            "swedbank" => ImportSource::Swedbank,
             _ => ImportSource::Amex,
         };
         source.set(new_source.clone());
@@ -59,9 +60,10 @@ pub fn Upload() -> Element {
             None => return,
         };
 
-        // Klarna PDFs are binary — read as bytes and base64-encode for transport.
+        // Klarna PDFs and Swedbank CSVs are binary — read as bytes and base64-encode for transport.
         // All other sources are UTF-8 CSV text — read directly as a string.
-        let content = if source() == ImportSource::Klarna {
+        let needs_binary = source() == ImportSource::Klarna || source() == ImportSource::Swedbank;
+        let content = if needs_binary {
             match file.read_bytes().await {
                 Ok(bytes) => base64::engine::general_purpose::STANDARD.encode(&bytes),
                 Err(e) => {
@@ -128,10 +130,11 @@ pub fn Upload() -> Element {
                     select {
                         class: "input-std input-std--full",
                         onchange: on_source_change,
-                        option { value: "amex",   "American Express (Amex)" }
-                        option { value: "nordea", "Nordea" }
-                        option { value: "klarna", "Klarna (Monthly invoice PDF)" }
-                        option { value: "ica",    "ICA Bank" }
+                        option { value: "amex",     "American Express (Amex)" }
+                        option { value: "nordea",   "Nordea" }
+                        option { value: "klarna",   "Klarna (Monthly invoice PDF)" }
+                        option { value: "ica",      "ICA Bank" }
+                        option { value: "swedbank", "Swedbank" }
                     }
                 }
 
