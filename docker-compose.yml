@@ -6,8 +6,7 @@ services:
       POSTGRES_USER: budgete
       POSTGRES_PASSWORD: budgete
       POSTGRES_DB: budgete
-    ports:
-      - "5432:5432"
+    network_mode: host
     volumes:
       - db_data:/var/lib/postgresql/data
 
