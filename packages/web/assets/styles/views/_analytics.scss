@@ -6,6 +6,12 @@
   gap: 16px;
   align-items: flex-end;
   margin-bottom: 28px;
+
+  // Give each filter field a sensible min-width so they wrap gracefully
+  // before they get too narrow on tablets.
+  > .form-field {
+    flex: 1 1 160px;
+  }
 }
 
 // ── Monthly overview table ────────────────────────────────────────────────
@@ -158,5 +164,34 @@
     font-size: 0.82rem;
     font-weight: 500;
     color: var(--text-dim);
+  }
+}
+
+// ── Mobile overrides (≤ 640 px) ───────────────────────────────────────────
+
+@media (max-width: 640px) {
+  // Remove max-widths so charts fill the available width
+  .cat-bars,
+  .time-table {
+    max-width: 100%;
+  }
+
+  // Allow the table to scroll horizontally rather than clip amounts
+  .time-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+
+    &__header,
+    &__row {
+      min-width: 280px;
+    }
+  }
+
+  // Filters always stack on mobile (each field already flex-wraps,
+  // but force full-width so they don't sit side-by-side at 160px)
+  .analytics-filters {
+    > .form-field {
+      flex: 1 1 100%;
+    }
   }
 }

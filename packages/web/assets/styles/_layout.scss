@@ -49,3 +49,15 @@
     gap: 24px;
   }
 }
+
+// ── Tablet overrides (641 px – 1024 px) ───────────────────────────────────
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .view {
+    padding: 24px;
+  }
+
+  .two-col {
+    gap: 24px;
+  }
+}

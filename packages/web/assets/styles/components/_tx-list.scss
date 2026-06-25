@@ -2,6 +2,7 @@
 // Grid column template shared by header and every data row.
 
 $tx-cols: 90px 1fr 72px 150px 100px;
+$tx-cols-tablet: 85px 1fr 140px 90px; // drops the 72px source column
 $tx-cols-mobile: 75px 1fr 90px;
 
 .tx-list {
@@ -87,6 +88,28 @@ $tx-cols-mobile: 75px 1fr 90px;
   }
 }
 
+// ── Tablet overrides (641 px – 900 px) ────────────────────────────────────
+// Drop the narrow source column to give description more space.
+
+@media (max-width: 900px) {
+  .tx-list__header {
+    grid-template-columns: $tx-cols-tablet;
+
+    // Hide the source (3rd) header cell
+    > span:nth-child(3) {
+      display: none;
+    }
+  }
+
+  .tx-row {
+    grid-template-columns: $tx-cols-tablet;
+
+    &__source {
+      display: none;
+    }
+  }
+}
+
 // ── Mobile overrides (≤ 640 px) ───────────────────────────────────────────
 // Collapse to 3 columns: date | description | amount.
 // Source and category columns are hidden.
@@ -104,6 +127,8 @@ $tx-cols-mobile: 75px 1fr 90px;
 
   .tx-row {
     grid-template-columns: $tx-cols-mobile;
+    // Larger vertical padding for easier touch scanning
+    padding: 12px 0;
 
     &__source,
     &__classify {

@@ -141,3 +141,46 @@ button:active:not(:disabled) {
   filter: brightness(0.88);
   transform: translateY(1px);
 }
+
+// ── Mobile touch targets (≤ 640 px) ──────────────────────────────────────
+// Minimum 44 px tap area on solid/ghost buttons; slightly relaxed for small
+// utility buttons so they don't blow up the layout.
+
+@media (max-width: 640px) {
+  .btn-primary {
+    min-height: 44px;
+    padding: 10px 14px;
+
+    &--sm,
+    &--xs {
+      min-height: 40px;
+      padding: 9px 14px;
+    }
+  }
+
+  .btn-ghost {
+    min-height: 40px;
+    padding: 8px 12px;
+
+    &--sm,
+    &--xs {
+      min-height: 36px;
+      padding: 6px 10px;
+    }
+  }
+
+  .btn-undo {
+    min-height: 40px;
+    padding: 8px 14px;
+  }
+
+  .btn-danger {
+    min-height: 40px;
+    padding: 8px 12px;
+  }
+
+  // Easier tap area without visually enlarging the text link
+  .btn-text {
+    padding: 10px 0;
+  }
+}

@@ -128,47 +128,51 @@ fn AppLayout() -> Element {
         ui::Navbar {
             dark_mode: dark_mode(),
             on_toggle: move |_| *dark_mode.write() = !dark_mode(),
-            Link {
-                to: Route::Dashboard {},
-                active_class: "nav-active",
-                class: "nav-link",
-                "Dashboard"
-            }
-            Link {
-                to: Route::Upload {},
-                active_class: "nav-active",
-                class: "nav-link",
-                "Upload"
-            }
-            Link {
-                to: Route::Classify {},
-                active_class: "nav-active",
-                class: "nav-link",
-                "Classify"
-            }
-            Link {
-                to: Route::Transactions {},
-                active_class: "nav-active",
-                class: "nav-link",
-                "Transactions"
-            }
-            Link {
-                to: Route::Projects {},
-                active_class: "nav-active",
-                class: "nav-link",
-                "Projects"
-            }
-            Link {
-                to: Route::Analytics {},
-                active_class: "nav-active",
-                class: "nav-link",
-                "Analytics"
-            }
-            a {
-                href: "/api/auth/logout",
-                class: "nav-link",
-                "Log out"
-            }
+            render_links: move |_| {
+                rsx! {
+                    Link {
+                        to: Route::Dashboard {},
+                        active_class: "nav-active",
+                        class: "nav-link",
+                        "Dashboard"
+                    }
+                    Link {
+                        to: Route::Upload {},
+                        active_class: "nav-active",
+                        class: "nav-link",
+                        "Upload"
+                    }
+                    Link {
+                        to: Route::Classify {},
+                        active_class: "nav-active",
+                        class: "nav-link",
+                        "Classify"
+                    }
+                    Link {
+                        to: Route::Transactions {},
+                        active_class: "nav-active",
+                        class: "nav-link",
+                        "Transactions"
+                    }
+                    Link {
+                        to: Route::Projects {},
+                        active_class: "nav-active",
+                        class: "nav-link",
+                        "Projects"
+                    }
+                    Link {
+                        to: Route::Analytics {},
+                        active_class: "nav-active",
+                        class: "nav-link",
+                        "Analytics"
+                    }
+                    a {
+                        href: "/api/auth/logout",
+                        class: "nav-link",
+                        "Log out"
+                    }
+                }
+            },
         }
         Outlet::<Route> {}
     }
