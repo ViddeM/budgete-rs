@@ -106,18 +106,27 @@ pub struct QueueState {
     pub remaining: i64,
 }
 
-/// The two supported CSV import sources.
+/// All supported transaction import sources.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub enum CsvSource {
+pub enum ImportSource {
     Amex,
     Nordea,
+    /// Klarna Monthly invoice PDF (binary content, base64-encoded for transport).
+    Klarna,
+    /// ICA Bank CSV export (`Datum;Text;Typ;Belopp;Saldo`).
+    Ica,
+    /// Swedbank CSV export (Windows-1252 encoded, base64-encoded for transport).
+    Swedbank,
 }
 
-impl std::fmt::Display for CsvSource {
+impl std::fmt::Display for ImportSource {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            CsvSource::Amex => write!(f, "amex"),
-            CsvSource::Nordea => write!(f, "nordea"),
+            ImportSource::Amex => write!(f, "amex"),
+            ImportSource::Nordea => write!(f, "nordea"),
+            ImportSource::Klarna => write!(f, "klarna"),
+            ImportSource::Ica => write!(f, "ica"),
+            ImportSource::Swedbank => write!(f, "swedbank"),
         }
     }
 }
