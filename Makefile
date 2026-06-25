@@ -11,23 +11,7 @@ serve:
 	cd $(WEB_DIR) && dx serve
 
 db-start:
-	@if (echo > /dev/tcp/127.0.0.1/5432) 2>/dev/null; then \
-		echo "[db] already running"; \
-	else \
-		echo "[db] starting container..."; \
-		docker compose up -d; \
-		echo "[db] waiting for postgres to be ready..."; \
-		for i in 1 2 3 4 5 6 7 8 9 10; do \
-			if (echo > /dev/tcp/127.0.0.1/5432) 2>/dev/null; then \
-				echo "[db] ready"; \
-				sleep 1; \
-				exit 0; \
-			fi; \
-			sleep 1; \
-		done; \
-		echo "error: postgres did not start"; \
-		exit 1; \
-	fi
+	@(echo > /dev/tcp/127.0.0.1/5432) 2>/dev/null || (docker compose up -d && for i in {1..10}; do (echo > /dev/tcp/127.0.0.1/5432) 2>/dev/null && sleep 1 && exit 0 || sleep 1; done; exit 1)
 
 db-stop:
 	docker compose down
