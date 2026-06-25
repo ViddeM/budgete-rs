@@ -106,6 +106,20 @@ pub struct QueueState {
     pub remaining: i64,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct HouseholdMember {
+    pub name: Option<String>,
+    pub email: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct HouseholdInfo {
+    pub id: Uuid,
+    pub name: String,
+    pub invite_code: String,
+    pub members: Vec<HouseholdMember>,
+}
+
 /// All supported transaction import sources.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ImportSource {

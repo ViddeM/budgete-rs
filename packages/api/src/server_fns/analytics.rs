@@ -5,12 +5,12 @@ use uuid::Uuid;
 
 #[cfg(feature = "server")]
 use {
-    crate::auth::session::current_user_id,
+    crate::auth::session::current_household_id,
     crate::db::pool,
     crate::db_rows::{CategorySpendRow, OverTimeRow},
 };
 
-/// Total expense per category for the current user in the given date range,
+/// Total expense per category for the current household in the given date range,
 /// optionally scoped to a project (group). Returns absolute (positive) expense
 /// values, largest first.
 #[server]
@@ -19,7 +19,7 @@ pub async fn get_spending_by_category(
     date_to: NaiveDate,
     group_id: Option<Uuid>,
 ) -> Result<Vec<CategorySpend>, ServerFnError> {
-    let user_id = current_user_id().await?;
+    let household_id = current_household_id().await?;
     let db = pool();
 
     let rows: Vec<CategorySpendRow> = sqlx::query_as(
@@ -35,7 +35,7 @@ pub async fn get_spending_by_category(
         FROM transactions t
         JOIN categories c ON t.category_id = c.id
         LEFT JOIN categories p ON c.parent_id = p.id
-        WHERE t.user_id = $1
+        WHERE t.household_id = $1
           AND t.date >= $2
           AND t.date <= $3
           AND t.is_pending = false
@@ -49,7 +49,7 @@ pub async fn get_spending_by_category(
         ORDER BY SUM(-t.amount) DESC
         "#,
     )
-    .bind(user_id)
+    .bind(household_id)
     .bind(date_from)
     .bind(date_to)
     .bind(group_id)
@@ -71,7 +71,7 @@ pub async fn get_spending_by_category(
         .collect())
 }
 
-/// Expenses and income for the current user aggregated by calendar month for
+/// Expenses and income for the current household aggregated by calendar month for
 /// the given date range, optionally scoped to a project. Both `expenses` and
 /// `income` are positive values.
 #[server]
@@ -80,7 +80,7 @@ pub async fn get_spending_over_time(
     date_to: NaiveDate,
     group_id: Option<Uuid>,
 ) -> Result<Vec<SpendingOverTime>, ServerFnError> {
-    let user_id = current_user_id().await?;
+    let household_id = current_household_id().await?;
     let db = pool();
 
     let rows: Vec<OverTimeRow> = sqlx::query_as(
@@ -91,7 +91,7 @@ pub async fn get_spending_over_time(
             SUM(CASE WHEN t.amount > 0 THEN  t.amount ELSE 0::numeric END) AS income
         FROM transactions t
         LEFT JOIN categories c ON c.id = t.category_id
-        WHERE t.user_id = $1
+        WHERE t.household_id = $1
           AND t.date >= $2
           AND t.date <= $3
           AND t.is_pending = false
@@ -104,7 +104,7 @@ pub async fn get_spending_over_time(
         ORDER BY DATE_TRUNC('month', t.date)
         "#,
     )
-    .bind(user_id)
+    .bind(household_id)
     .bind(date_from)
     .bind(date_to)
     .bind(group_id)

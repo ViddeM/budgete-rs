@@ -3,7 +3,7 @@ use dioxus::prelude::*;
 
 #[cfg(feature = "server")]
 use {
-    crate::auth::session::current_user_id,
+    crate::auth::session::current_household_id,
     crate::db::pool,
     crate::db_rows::{CategorySpendRow, CountRow, PrevTotalsRow, TotalsRow},
     crate::models::CategorySpend,
@@ -12,10 +12,10 @@ use {
 };
 
 /// Compute dashboard statistics for the current calendar month, scoped to the
-/// current user.
+/// current household.
 #[server]
 pub async fn get_dashboard_stats() -> Result<DashboardStats, ServerFnError> {
-    let user_id = current_user_id().await?;
+    let household_id = current_household_id().await?;
     let db = pool();
 
     let today = chrono::Local::now().date_naive();
@@ -27,7 +27,6 @@ pub async fn get_dashboard_stats() -> Result<DashboardStats, ServerFnError> {
     };
     let prev_month_start = chrono::NaiveDate::from_ymd_opt(prev_year, prev_month, 1).unwrap();
 
-    // Totals this month
     let totals: TotalsRow = sqlx::query_as(
         r#"
         SELECT
@@ -35,45 +34,42 @@ pub async fn get_dashboard_stats() -> Result<DashboardStats, ServerFnError> {
             COALESCE(SUM(amount) FILTER (WHERE amount > 0), 0) AS income
         FROM transactions t
         LEFT JOIN categories c ON c.id = t.category_id
-        WHERE t.user_id = $1 AND t.date >= $2 AND t.is_pending = false
+        WHERE t.household_id = $1 AND t.date >= $2 AND t.is_pending = false
           AND COALESCE(c.ignored, false) = false
         "#,
     )
-    .bind(user_id)
+    .bind(household_id)
     .bind(month_start)
     .fetch_one(db)
     .await
     .map_err(|e| ServerFnError::new(e.to_string()))?;
 
-    // Previous month expenses
     let prev_totals: PrevTotalsRow = sqlx::query_as(
         r#"
         SELECT
             COALESCE(SUM(amount) FILTER (WHERE amount < 0), 0) AS expenses
         FROM transactions t
         LEFT JOIN categories c ON c.id = t.category_id
-        WHERE t.user_id = $1 AND t.date >= $2 AND t.date < $3 AND t.is_pending = false
+        WHERE t.household_id = $1 AND t.date >= $2 AND t.date < $3 AND t.is_pending = false
           AND COALESCE(c.ignored, false) = false
         "#,
     )
-    .bind(user_id)
+    .bind(household_id)
     .bind(prev_month_start)
     .bind(month_start)
     .fetch_one(db)
     .await
     .map_err(|e| ServerFnError::new(e.to_string()))?;
 
-    // Unprocessed count
     let unprocessed: CountRow = sqlx::query_as(
         "SELECT COUNT(*) AS count FROM transactions \
-         WHERE user_id = $1 AND category_id IS NULL AND is_pending = false",
+         WHERE household_id = $1 AND category_id IS NULL AND is_pending = false",
     )
-    .bind(user_id)
+    .bind(household_id)
     .fetch_one(db)
     .await
     .map_err(|e| ServerFnError::new(e.to_string()))?;
 
-    // All categories with spend this month (client groups by top-level and applies top-5 limit)
     let cat_rows: Vec<CategorySpendRow> = sqlx::query_as(
         r#"
         SELECT
@@ -87,13 +83,13 @@ pub async fn get_dashboard_stats() -> Result<DashboardStats, ServerFnError> {
         FROM transactions t
         JOIN categories c ON c.id = t.category_id
         LEFT JOIN categories p ON c.parent_id = p.id
-        WHERE t.user_id = $1 AND t.date >= $2 AND t.amount < 0 AND t.is_pending = false
+        WHERE t.household_id = $1 AND t.date >= $2 AND t.amount < 0 AND t.is_pending = false
           AND c.ignored = false
         GROUP BY c.id, c.name, c.color, c.parent_id, p.name, p.color
         ORDER BY total DESC
         "#,
     )
-    .bind(user_id)
+    .bind(household_id)
     .bind(month_start)
     .fetch_all(db)
     .await
