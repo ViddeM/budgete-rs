@@ -22,9 +22,13 @@ pub(crate) mod csv;
 #[cfg(feature = "server")]
 pub mod auth;
 
-/// Convenience re-export so web can call `api::current_user_id()` directly.
+/// Convenience re-exports so web can call auth helpers directly.
 #[cfg(feature = "server")]
 pub use auth::current_user_id;
+#[cfg(feature = "server")]
+pub use auth::current_household_id;
+#[cfg(feature = "server")]
+pub use auth::ensure_local_household;
 
 pub mod server_fns;
 
@@ -34,6 +38,7 @@ pub use server_fns::analytics::*;
 pub use server_fns::categories::*;
 pub use server_fns::dashboard::*;
 pub use server_fns::groups::*;
+pub use server_fns::household::*;
 pub use server_fns::local_mode::*;
 pub use server_fns::theme::*;
 pub use server_fns::transactions::*;

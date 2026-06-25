@@ -3,20 +3,20 @@ use dioxus::prelude::*;
 use uuid::Uuid;
 
 #[cfg(feature = "server")]
-use {crate::auth::session::current_user_id, crate::db::pool, crate::db_rows::CategoryRow};
+use {crate::auth::session::current_household_id, crate::db::pool, crate::db_rows::CategoryRow};
 
-/// List all categories for the current user, ordered so each parent is
+/// List all categories for the current household, ordered so each parent is
 /// immediately followed by its subcategories.
 #[server]
 pub async fn list_categories() -> Result<Vec<Category>, ServerFnError> {
-    let user_id = current_user_id().await?;
+    let household_id = current_household_id().await?;
     let db = pool();
     let rows: Vec<CategoryRow> = sqlx::query_as(
         "SELECT id, name, color, parent_id, ignored FROM categories \
-         WHERE user_id = $1 \
+         WHERE household_id = $1 \
          ORDER BY COALESCE(parent_id, id), parent_id NULLS FIRST, name",
     )
-    .bind(user_id)
+    .bind(household_id)
     .fetch_all(db)
     .await
     .map_err(|e| ServerFnError::new(e.to_string()))?;
@@ -24,7 +24,7 @@ pub async fn list_categories() -> Result<Vec<Category>, ServerFnError> {
     Ok(rows.into_iter().map(Into::into).collect())
 }
 
-/// Create a new category for the current user. Pass `parent_id = Some(…)` to
+/// Create a new category for the current household. Pass `parent_id = Some(…)` to
 /// create a subcategory.
 #[server]
 pub async fn create_category(
@@ -33,10 +33,10 @@ pub async fn create_category(
     parent_id: Option<Uuid>,
     ignored: bool,
 ) -> Result<Category, ServerFnError> {
-    let user_id = current_user_id().await?;
+    let household_id = current_household_id().await?;
     let db = pool();
     let row: CategoryRow = sqlx::query_as(
-        "INSERT INTO categories (name, color, parent_id, ignored, user_id) \
+        "INSERT INTO categories (name, color, parent_id, ignored, household_id) \
          VALUES ($1, $2, $3, $4, $5) \
          RETURNING id, name, color, parent_id, ignored",
     )
@@ -44,7 +44,7 @@ pub async fn create_category(
     .bind(&color)
     .bind(parent_id)
     .bind(ignored)
-    .bind(user_id)
+    .bind(household_id)
     .fetch_one(db)
     .await
     .map_err(|e| ServerFnError::new(e.to_string()))?;
@@ -52,7 +52,7 @@ pub async fn create_category(
     Ok(row.into())
 }
 
-/// Rename and/or recolor an existing category owned by the current user.
+/// Rename and/or recolor an existing category owned by the current household.
 #[server]
 pub async fn update_category(
     id: Uuid,
@@ -60,18 +60,18 @@ pub async fn update_category(
     color: String,
     ignored: bool,
 ) -> Result<Category, ServerFnError> {
-    let user_id = current_user_id().await?;
+    let household_id = current_household_id().await?;
     let db = pool();
     let row: CategoryRow = sqlx::query_as(
         "UPDATE categories SET name = $1, color = $2, ignored = $3 \
-         WHERE id = $4 AND user_id = $5 \
+         WHERE id = $4 AND household_id = $5 \
          RETURNING id, name, color, parent_id, ignored",
     )
     .bind(&name)
     .bind(&color)
     .bind(ignored)
     .bind(id)
-    .bind(user_id)
+    .bind(household_id)
     .fetch_one(db)
     .await
     .map_err(|e| ServerFnError::new(e.to_string()))?;
@@ -79,37 +79,39 @@ pub async fn update_category(
     Ok(row.into())
 }
 
-/// Delete a category owned by the current user. Deleting a top-level category
+/// Delete a category owned by the current household. Deleting a top-level category
 /// cascades to its subcategories; ON DELETE SET NULL then unclassifies any
 /// transactions that were in those subcategories.
 #[server]
 pub async fn delete_category(id: Uuid) -> Result<(), ServerFnError> {
-    let user_id = current_user_id().await?;
+    let household_id = current_household_id().await?;
     let db = pool();
-    sqlx::query("DELETE FROM categories WHERE id = $1 AND user_id = $2")
+    sqlx::query("DELETE FROM categories WHERE id = $1 AND household_id = $2")
         .bind(id)
-        .bind(user_id)
+        .bind(household_id)
         .execute(db)
         .await
         .map_err(|e| ServerFnError::new(e.to_string()))?;
     Ok(())
 }
 
-/// Assign a category to a transaction owned by the current user (pass `None`
+/// Assign a category to a transaction owned by the current household (pass `None`
 /// to un-classify).
 #[server]
 pub async fn classify_transaction(
     tx_id: Uuid,
     category_id: Option<Uuid>,
 ) -> Result<(), ServerFnError> {
-    let user_id = current_user_id().await?;
+    let household_id = current_household_id().await?;
     let db = pool();
-    sqlx::query("UPDATE transactions SET category_id = $1 WHERE id = $2 AND user_id = $3")
-        .bind(category_id)
-        .bind(tx_id)
-        .bind(user_id)
-        .execute(db)
-        .await
-        .map_err(|e| ServerFnError::new(e.to_string()))?;
+    sqlx::query(
+        "UPDATE transactions SET category_id = $1 WHERE id = $2 AND household_id = $3",
+    )
+    .bind(category_id)
+    .bind(tx_id)
+    .bind(household_id)
+    .execute(db)
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
     Ok(())
 }

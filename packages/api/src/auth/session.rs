@@ -46,6 +46,11 @@ pub const LOCAL_USER_ID: Uuid = Uuid::from_bytes([
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
 ]);
 
+/// Fixed UUID for the built-in local-mode household (`00000000-0000-0000-0000-000000000002`).
+pub const LOCAL_HOUSEHOLD_ID: Uuid = Uuid::from_bytes([
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02,
+]);
+
 /// Ensure the local-mode user row exists in the `users` table.
 ///
 /// Idempotent — safe to call on every server startup.  Only needed when
@@ -60,6 +65,30 @@ pub async fn ensure_local_user() -> Result<(), sqlx::Error> {
     .bind(LOCAL_USER_ID)
     .execute(pool())
     .await?;
+    Ok(())
+}
+
+/// Ensure the local-mode household row exists and is assigned to the local user.
+///
+/// Idempotent — safe to call on every server startup after [`ensure_local_user()`].
+pub async fn ensure_local_household() -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "INSERT INTO households (id, name, invite_code) \
+         VALUES ($1, 'Home', 'LOCAL-MODE') \
+         ON CONFLICT DO NOTHING",
+    )
+    .bind(LOCAL_HOUSEHOLD_ID)
+    .execute(pool())
+    .await?;
+
+    sqlx::query(
+        "UPDATE users SET household_id = $1 WHERE id = $2 AND household_id IS NULL",
+    )
+    .bind(LOCAL_HOUSEHOLD_ID)
+    .bind(LOCAL_USER_ID)
+    .execute(pool())
+    .await?;
+
     Ok(())
 }
 
@@ -138,7 +167,7 @@ pub(crate) async fn delete_session(token: Uuid) -> Result<(), sqlx::Error> {
 }
 
 // ---------------------------------------------------------------------------
-// Server-function helper
+// Server-function helpers
 // ---------------------------------------------------------------------------
 
 /// Extract the authenticated user's UUID from the current server-function
@@ -161,4 +190,36 @@ pub async fn current_user_id() -> Result<Uuid, ServerFnError> {
         .await
         .map_err(|e| ServerFnError::new(e.to_string()))?
         .ok_or_else(|| ServerFnError::new("Session expired or invalid"))
+}
+
+/// Extract the authenticated user's household UUID from the current
+/// server-function request.
+///
+/// In `LOCAL_MODE`, always returns [`LOCAL_HOUSEHOLD_ID`].
+pub async fn current_household_id() -> Result<Uuid, ServerFnError> {
+    if crate::config::config().local_mode {
+        return Ok(LOCAL_HOUSEHOLD_ID);
+    }
+
+    use dioxus::prelude::dioxus_fullstack::FullstackContext;
+
+    let ctx = FullstackContext::current().ok_or_else(|| ServerFnError::new("Not authenticated"))?;
+    let headers = ctx.parts_mut().headers.clone();
+    let token = session_token_from_headers(&headers)
+        .ok_or_else(|| ServerFnError::new("Not authenticated"))?;
+
+    let result: Option<Option<Uuid>> = sqlx::query_scalar(
+        "SELECT u.household_id \
+         FROM sessions s \
+         JOIN users u ON u.id = s.user_id \
+         WHERE s.token = $1 AND s.expires_at > NOW()",
+    )
+    .bind(token)
+    .fetch_optional(pool())
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    result
+        .ok_or_else(|| ServerFnError::new("Session expired or invalid"))?
+        .ok_or_else(|| ServerFnError::new("User has no household"))
 }

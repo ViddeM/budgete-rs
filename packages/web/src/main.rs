@@ -1,16 +1,18 @@
 use api::get_theme;
 use dioxus::document::eval;
 use dioxus::prelude::*;
-use views::{Analytics, Classify, Dashboard, Login, Projects, Transactions, Upload};
+use views::{Analytics, Classify, Dashboard, HouseholdSettings, HouseholdSetup, Login, Projects, Transactions, Upload};
 
 mod views;
 
 #[derive(Debug, Clone, Routable, PartialEq)]
 #[rustfmt::skip]
 enum Route {
-    // Login lives outside the app shell — no navbar, no layout.
+    // Login and household setup live outside the app shell — no navbar, no layout.
     #[route("/login")]
     Login {},
+    #[route("/household/setup")]
+    HouseholdSetup {},
 
     #[layout(AppLayout)]
         #[route("/")]
@@ -25,6 +27,8 @@ enum Route {
         Projects {},
         #[route("/analytics")]
         Analytics {},
+        #[route("/household")]
+        HouseholdSettings {},
 }
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
@@ -54,27 +58,25 @@ fn main() {
         use api::auth::{handlers, middleware::require_auth};
         use axum::{middleware, routing::get};
 
-        // In local mode: ensure the built-in user row exists, skip OAuth routes.
+        // In local mode: ensure the built-in user and household rows exist, skip OAuth routes.
         let router = if api::config::config().local_mode {
             api::auth::ensure_local_user()
                 .await
                 .expect("failed to ensure local user");
 
+            api::auth::ensure_local_household()
+                .await
+                .expect("failed to ensure local household");
+
             dioxus::server::router(App)
-                // Logout is still needed in local mode so the nav link works.
-                // The handler safely no-ops when there is no session cookie.
                 .route("/api/auth/logout", get(handlers::logout_handler))
         } else {
             dioxus::server::router(App)
-                // OAuth flow — handled entirely by axum, outside Dioxus routing.
                 .route("/api/auth/login", get(handlers::login_handler))
                 .route("/api/auth/callback", get(handlers::callback_handler))
                 .route("/api/auth/logout", get(handlers::logout_handler))
         };
 
-        // Enforce authentication on every request (see middleware for
-        // the list of public paths that are always allowed through, and for
-        // the LOCAL_MODE bypass).
         let router = router.layer(middleware::from_fn(require_auth));
 
         Ok(router)
@@ -87,9 +89,6 @@ fn main() {
 
 #[component]
 fn App() -> Element {
-    // Read initial theme from cookie on the server so SSR renders the correct
-    // theme — the serialised value is sent to the client so the first
-    // hydration render is also consistent (no flash).
     let theme_res = use_server_future(get_theme)?;
     let initial_dark = theme_res()
         .and_then(|r| r.ok())
@@ -99,8 +98,6 @@ fn App() -> Element {
     let dark_mode = use_signal(|| initial_dark);
     use_context_provider(|| dark_mode);
 
-    // Sync data-theme on <html> and write the cookie whenever the signal changes.
-    // This only runs in the browser (use_effect is client-only).
     use_effect(move || {
         let theme = if dark_mode() { "dark" } else { "light" };
         eval(&format!(
@@ -165,6 +162,12 @@ fn AppLayout() -> Element {
                         active_class: "nav-active",
                         class: "nav-link",
                         "Analytics"
+                    }
+                    Link {
+                        to: Route::HouseholdSettings {},
+                        active_class: "nav-active",
+                        class: "nav-link",
+                        "Household"
                     }
                     a {
                         href: "/api/auth/logout",
