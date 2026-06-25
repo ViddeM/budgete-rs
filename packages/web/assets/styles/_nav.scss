@@ -1,12 +1,20 @@
 // ── Navigation bar ────────────────────────────────────────────────────────
+// `app-nav` is a plain block element. Its two children are:
+//   .nav-bar    — the always-visible horizontal bar (flex row)
+//   .nav-drawer — mobile-only vertical link list (block, below the bar)
 
 .app-nav {
+  background: #1e293b;
+  color: #f1f5f9;
+}
+
+// ── Top bar (always visible) ──────────────────────────────────────────────
+
+.nav-bar {
   display: flex;
   align-items: center;
   padding: 0 32px;
   height: 52px;
-  background: #1e293b;
-  color: #f1f5f9;
 }
 
 .nav-brand {
@@ -17,7 +25,7 @@
   flex-shrink: 0;
 }
 
-// ── Nav links container (horizontal row on desktop) ───────────────────────
+// ── Desktop link row (inside .nav-bar) ────────────────────────────────────
 
 .nav-links {
   display: flex;
@@ -44,7 +52,7 @@
   padding-bottom: 2px;
 }
 
-// ── Right-side controls (theme toggle + hamburger) ────────────────────────
+// ── Right-side controls ───────────────────────────────────────────────────
 
 .nav-controls {
   display: flex;
@@ -71,31 +79,39 @@
   border: 1px solid #475569;
   color: #94a3b8;
   border-radius: 6px;
-  padding: 4px 10px;
+  padding: 8px 14px;
   cursor: pointer;
   font-size: 1rem;
   flex-shrink: 0;
   line-height: 1;
+  min-height: 40px;
 }
 
-// ── Mobile nav (≤ 640 px) ─────────────────────────────────────────────────
+// ── Mobile drawer (below .nav-bar) ────────────────────────────────────────
+// Hidden by default; toggled to display:flex by the --open modifier.
+
+.nav-drawer {
+  display: none;
+  flex-direction: column;
+  padding: 8px 16px 12px;
+  gap: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+  &--open {
+    display: flex;
+  }
+}
+
+// ── Mobile overrides (≤ 640 px) ───────────────────────────────────────────
 
 @media (max-width: 640px) {
-  .app-nav {
-    flex-wrap: wrap;
+  .nav-bar {
     padding: 0 16px;
-    height: auto;
   }
 
-  .nav-brand {
-    height: 52px;
-    display: flex;
-    align-items: center;
-    margin-right: 0;
-  }
-
-  .nav-controls {
-    height: 52px;
+  // Desktop link row is hidden on mobile — links live in the drawer instead.
+  .nav-links {
+    display: none;
   }
 
   .nav-hamburger {
@@ -103,32 +119,23 @@
     align-items: center;
   }
 
-  // Collapsed by default; expanded when --open is toggled by the component.
-  .nav-links {
-    display: none;
-    width: 100%;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0;
-    padding: 8px 0 12px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-
-    &--open {
-      display: flex;
-    }
-  }
-
-  .nav-link {
-    display: block;
-    padding: 10px 4px;
+  // Drawer links: full-width tap targets.
+  // All links always have border-left (transparent by default) so padding
+  // stays identical whether or not the link is active — no layout shift.
+  .nav-drawer .nav-link {
+    display: flex;
+    align-items: center;
+    padding: 12px 4px 12px 11px; // 11px = 8px content indent + 3px for the border
     font-size: 1rem;
     width: 100%;
+    min-height: 44px;
+    border-left: 3px solid transparent;
+    box-sizing: border-box;
   }
 
-  .nav-active {
+  .nav-drawer .nav-active {
     border-bottom: none;
-    border-left: 3px solid #6366f1;
-    padding-bottom: 0;
-    padding-left: 8px;
+    border-left-color: #6366f1;
+    padding-bottom: 12px; // restore — desktop rule sets it to 0
   }
 }

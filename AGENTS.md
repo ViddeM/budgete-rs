@@ -380,23 +380,20 @@ cargo clippy --workspace --all-features -- -D warnings
 All warnings are treated as errors. If a lint must be suppressed, add a narrowly-scoped
 `#[allow(clippy::lint_name)]` with a comment explaining why, and flag it for review.
 
-### SCSS formatting
+### SCSS formatting and compilation
 
-Node.js is required (installed via `fnm` — see below). Prettier is the formatter.
-
-```sh
-# One-time setup (no sudo required)
-curl -fsSL https://fnm.vercel.app/install | bash
-fnm install --lts
-# then restart your shell or eval "$(fnm env)"
-npm install          # installs Prettier from package.json
-```
+[`grass`](https://github.com/connorcarpenter/grass) is the Rust-native Sass compiler used to build `main.css`.
 
 ```sh
-npm run format:scss  # formats all packages/**/*.scss in place
+# One-time install
+cargo install grass
+
+# Recompile after editing any .scss file
+grass packages/web/assets/main.scss --style compressed > packages/web/assets/main.css
 ```
 
-Config lives in `.prettierrc` at the workspace root.
+SCSS files are formatted with `rustfmt`-style conventions (2-space indent, consistent spacing).
+No external Node/Prettier toolchain is required.
 
 ### De-duplication rules
 

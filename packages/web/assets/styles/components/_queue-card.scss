@@ -130,6 +130,13 @@
     max-width: 100%;
   }
 
+  // Category pick buttons need a comfortable tap area on touch screens
+  .cat-btn {
+    min-height: 44px;
+    padding: 10px 20px;
+    font-size: 0.95rem;
+  }
+
   .queue-preview__date {
     min-width: 64px;
   }

@@ -165,3 +165,32 @@
   justify-content: flex-end;
   margin-top: 6px;
 }
+
+// ── Mobile overrides (≤ 640 px) ───────────────────────────────────────────
+
+@media (max-width: 640px) {
+  // Stack form rows vertically so fields don't get cramped
+  .form-row {
+    flex-direction: column;
+    align-items: stretch;
+
+    // Keep the center-align variant sensible when stacked
+    &--center {
+      align-items: flex-start;
+    }
+  }
+
+  // Larger tap area on standard inputs
+  .input-std {
+    min-height: 44px;
+    padding: 10px 12px;
+  }
+
+  // Easier checkbox tap
+  .checkbox-row {
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+    }
+  }
+}

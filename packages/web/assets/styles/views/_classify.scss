@@ -5,11 +5,34 @@
   flex-shrink: 0;
 }
 
+// ── Tablet overrides (641 px – 900 px) ────────────────────────────────────
+
+@media (max-width: 900px) {
+  .classify-col-left {
+    width: 280px;
+  }
+}
+
 // ── Mobile overrides (≤ 640 px) ───────────────────────────────────────────
 
 @media (max-width: 640px) {
   .classify-col-left {
     width: 100%;
+  }
+
+  // More comfortable tap area on category rows
+  .cat-node {
+    &__parent-display {
+      padding: 14px 12px;
+    }
+
+    &__sub-display {
+      padding: 12px 12px 12px 28px;
+    }
+
+    &__add-sub {
+      padding: 10px 12px 10px 28px;
+    }
   }
 }
 
