@@ -33,3 +33,53 @@ pub fn parse_swedish_decimal(s: &str) -> Result<Decimal, rust_decimal::Error> {
         .replace(',', ".");
     Decimal::from_str(&normalised)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::parse_swedish_decimal;
+
+    #[test]
+    fn basic_decimal() {
+        assert_eq!(parse_swedish_decimal("35,00").unwrap().to_string(), "35.00");
+    }
+
+    #[test]
+    fn thousands_separator() {
+        assert_eq!(parse_swedish_decimal("1 234,56").unwrap().to_string(), "1234.56");
+    }
+
+    #[test]
+    fn negative_ascii_minus() {
+        assert_eq!(parse_swedish_decimal("-175,00").unwrap().to_string(), "-175.00");
+    }
+
+    #[test]
+    fn negative_unicode_minus() {
+        assert_eq!(parse_swedish_decimal("\u{2212}175,00").unwrap().to_string(), "-175.00");
+    }
+
+    #[test]
+    fn negative_with_thousands() {
+        assert_eq!(parse_swedish_decimal("-1 500,00").unwrap().to_string(), "-1500.00");
+    }
+
+    #[test]
+    fn integer_no_decimal() {
+        assert_eq!(parse_swedish_decimal("1000").unwrap().to_string(), "1000");
+    }
+
+    #[test]
+    fn leading_trailing_whitespace_trimmed() {
+        assert_eq!(parse_swedish_decimal("  42,50  ").unwrap().to_string(), "42.50");
+    }
+
+    #[test]
+    fn invalid_input_errors() {
+        assert!(parse_swedish_decimal("not-a-number").is_err());
+    }
+
+    #[test]
+    fn empty_string_errors() {
+        assert!(parse_swedish_decimal("").is_err());
+    }
+}

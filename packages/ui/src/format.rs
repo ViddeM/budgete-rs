@@ -94,3 +94,128 @@ pub fn tx_amount_color(amount: Decimal) -> &'static str {
         "#dc2626"
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::NaiveDate;
+
+    // U+202F NARROW NO-BREAK SPACE used as the thousands separator.
+    const NBSP: char = '\u{202F}';
+
+    fn dec(s: &str) -> Decimal {
+        s.parse().unwrap()
+    }
+
+    // ── fmt_amount ──────────────────────────────────────────────────────────
+
+    #[test]
+    fn fmt_amount_positive_with_thousands() {
+        assert_eq!(fmt_amount(dec("12345.67")), format!("12{NBSP}346 SEK"));
+    }
+
+    #[test]
+    fn fmt_amount_negative_with_thousands() {
+        assert_eq!(fmt_amount(dec("-1234.00")), format!("-1{NBSP}234 SEK"));
+    }
+
+    #[test]
+    fn fmt_amount_zero() {
+        assert_eq!(fmt_amount(Decimal::ZERO), "0 SEK");
+    }
+
+    #[test]
+    fn fmt_amount_small_no_separator() {
+        assert_eq!(fmt_amount(dec("42.49")), "42 SEK");
+    }
+
+    // ── fmt_tx_amount ───────────────────────────────────────────────────────
+
+    #[test]
+    fn fmt_tx_amount_positive_with_thousands() {
+        assert_eq!(fmt_tx_amount(dec("1234.50"), "SEK"), format!("1{NBSP}234.50 SEK"));
+    }
+
+    #[test]
+    fn fmt_tx_amount_negative_no_thousands() {
+        assert_eq!(fmt_tx_amount(dec("-999.00"), "EUR"), "-999.00 EUR");
+    }
+
+    #[test]
+    fn fmt_tx_amount_zero_pads_decimals() {
+        assert_eq!(fmt_tx_amount(Decimal::ZERO, "SEK"), "0.00 SEK");
+    }
+
+    #[test]
+    fn fmt_tx_amount_different_currency() {
+        assert_eq!(fmt_tx_amount(dec("100.99"), "USD"), "100.99 USD");
+    }
+
+    // ── contrast_text ───────────────────────────────────────────────────────
+
+    #[test]
+    fn contrast_text_bright_color_returns_dark_text() {
+        // Pure white: luminance ≈ 255, well above threshold 155.
+        assert_eq!(contrast_text("#ffffff"), "#111827");
+    }
+
+    #[test]
+    fn contrast_text_dark_color_returns_white_text() {
+        // Pure black: luminance = 0, below threshold 155.
+        assert_eq!(contrast_text("#000000"), "#ffffff");
+    }
+
+    #[test]
+    fn contrast_text_medium_bright_yellow_returns_dark() {
+        // Yellow #ffff00: luminance = 0.299*255 + 0.587*255 ≈ 226, above 155.
+        assert_eq!(contrast_text("#ffff00"), "#111827");
+    }
+
+    #[test]
+    fn contrast_text_invalid_hex_returns_white() {
+        // perceived_luminance returns None → falls through to "#ffffff".
+        assert_eq!(contrast_text("not-a-color"), "#ffffff");
+    }
+
+    // ── fmt_date ────────────────────────────────────────────────────────────
+
+    #[test]
+    fn fmt_date_some_formats_iso() {
+        let d = NaiveDate::from_ymd_opt(2026, 1, 15).unwrap();
+        assert_eq!(fmt_date(Some(d)), "2026-01-15");
+    }
+
+    #[test]
+    fn fmt_date_none_returns_pending() {
+        assert_eq!(fmt_date(None), "Pending");
+    }
+
+    // ── tx_amount_color ─────────────────────────────────────────────────────
+
+    #[test]
+    fn tx_amount_color_negative_is_red() {
+        assert_eq!(tx_amount_color(dec("-100.00")), "#dc2626");
+    }
+
+    #[test]
+    fn tx_amount_color_zero_is_green() {
+        assert_eq!(tx_amount_color(Decimal::ZERO), "#16a34a");
+    }
+
+    #[test]
+    fn tx_amount_color_positive_is_green() {
+        assert_eq!(tx_amount_color(dec("50.00")), "#16a34a");
+    }
+
+    // ── hover_filter ─────────────────────────────────────────────────────────
+
+    #[test]
+    fn hover_filter_dark_background_brightens() {
+        assert_eq!(hover_filter("#000000"), "brightness(1.18)");
+    }
+
+    #[test]
+    fn hover_filter_light_background_darkens() {
+        assert_eq!(hover_filter("#ffffff"), "brightness(0.88)");
+    }
+}

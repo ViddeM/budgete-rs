@@ -4,7 +4,7 @@ use dioxus::prelude::*;
 /// We keep this generic with `children` so the web crate can pass `Link` elements.
 ///
 /// HTML shape:
-/// ```
+/// ```text
 /// nav.app-nav                 ← block element
 ///   div.nav-bar               ← flex row: brand | links | controls
 ///     span.nav-brand

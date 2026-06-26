@@ -34,6 +34,80 @@ fn compute_dedup_hash(source_str: &str, row: &crate::csv::ParsedRow) -> String {
 }
 
 /// Parse the import content for any supported source into [`ParsedRow`]s.
+#[cfg(all(test, feature = "server"))]
+mod tests {
+    use super::*;
+    use crate::csv::ParsedRow;
+    use chrono::NaiveDate;
+
+    fn dated_row(date: NaiveDate, description: &str, amount: &str) -> ParsedRow {
+        ParsedRow {
+            date: Some(date),
+            description: description.to_string(),
+            amount: amount.parse().unwrap(),
+            currency: "SEK".to_string(),
+            is_pending: false,
+        }
+    }
+
+    #[test]
+    fn hash_is_deterministic() {
+        let row = dated_row(NaiveDate::from_ymd_opt(2026, 1, 15).unwrap(), "ICA FOCUS", "-100.50");
+        assert_eq!(
+            compute_dedup_hash("amex", &row),
+            compute_dedup_hash("amex", &row)
+        );
+    }
+
+    #[test]
+    fn hash_is_64_hex_chars() {
+        let row = dated_row(NaiveDate::from_ymd_opt(2026, 1, 15).unwrap(), "ICA FOCUS", "-100.00");
+        let hash = compute_dedup_hash("amex", &row);
+        assert_eq!(hash.len(), 64);
+        assert!(hash.chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    #[test]
+    fn hash_differs_for_different_sources() {
+        let row = dated_row(NaiveDate::from_ymd_opt(2026, 1, 15).unwrap(), "ICA FOCUS", "-100.00");
+        assert_ne!(
+            compute_dedup_hash("amex", &row),
+            compute_dedup_hash("nordea", &row)
+        );
+    }
+
+    #[test]
+    fn hash_differs_for_different_amounts() {
+        let r1 = dated_row(NaiveDate::from_ymd_opt(2026, 1, 15).unwrap(), "ICA FOCUS", "-100.00");
+        let r2 = dated_row(NaiveDate::from_ymd_opt(2026, 1, 15).unwrap(), "ICA FOCUS", "-200.00");
+        assert_ne!(compute_dedup_hash("amex", &r1), compute_dedup_hash("amex", &r2));
+    }
+
+    #[test]
+    fn hash_differs_for_different_descriptions() {
+        let r1 = dated_row(NaiveDate::from_ymd_opt(2026, 1, 15).unwrap(), "ICA FOCUS", "-100.00");
+        let r2 = dated_row(NaiveDate::from_ymd_opt(2026, 1, 15).unwrap(), "COOP", "-100.00");
+        assert_ne!(compute_dedup_hash("amex", &r1), compute_dedup_hash("amex", &r2));
+    }
+
+    #[test]
+    fn pending_row_differs_from_dated_row() {
+        let dated = dated_row(NaiveDate::from_ymd_opt(2026, 1, 15).unwrap(), "ONLINE", "-50.00");
+        let pending = ParsedRow {
+            date: None,
+            description: "ONLINE".to_string(),
+            amount: "-50.00".parse().unwrap(),
+            currency: "SEK".to_string(),
+            is_pending: true,
+        };
+        // "pending" is used as the date string for rows with no date.
+        assert_ne!(
+            compute_dedup_hash("nordea", &dated),
+            compute_dedup_hash("nordea", &pending)
+        );
+    }
+}
+
 ///
 /// - CSV sources: `content` is raw UTF-8 text.
 /// - Klarna: `content` is the PDF bytes encoded as standard base64.

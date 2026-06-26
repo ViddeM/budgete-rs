@@ -59,7 +59,7 @@ pub fn parse(content: &str) -> Result<Vec<ParsedRow>, String> {
     Ok(rows)
 }
 
-/// Split a CSV line, respecting double-quoted fields.
+/// Split a CSV line, respecting double-quoted fields (quote chars are stripped).
 fn split_csv_line(line: &str) -> Vec<String> {
     let mut fields = Vec::new();
     let mut current = String::new();
@@ -77,4 +77,88 @@ fn split_csv_line(line: &str) -> Vec<String> {
     }
     fields.push(current);
     fields
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Amex quotes the amount whenever it contains a comma (Swedish decimal).
+    const SAMPLE: &str = "\
+Datum,Beskrivning,Belopp
+04/23/2026,ICA FOCUS,\"100,00\"
+05/01/2026,BETALNING MOTTAGEN,\"-1 000,00\"
+05/15/2026,\"Restaurang Le Bistro\",\"112,54\"
+";
+
+    #[test]
+    fn test_parse_sample() {
+        let rows = parse(SAMPLE).expect("parse should succeed");
+        assert_eq!(rows.len(), 3);
+
+        // Positive Amex charge → flipped to negative expense.
+        assert_eq!(rows[0].description, "ICA FOCUS");
+        assert_eq!(rows[0].date, NaiveDate::from_ymd_opt(2026, 4, 23));
+        assert_eq!(rows[0].amount.to_string(), "-100.00");
+        assert_eq!(rows[0].currency, "SEK");
+        assert!(!rows[0].is_pending);
+
+        // Negative Amex row (credit/payment) → flipped to positive income.
+        assert_eq!(rows[1].description, "BETALNING MOTTAGEN");
+        assert_eq!(rows[1].amount.to_string(), "1000.00");
+
+        // Quoted description with amount "112,54".
+        assert_eq!(rows[2].description, "Restaurang Le Bistro");
+        assert_eq!(rows[2].amount.to_string(), "-112.54");
+    }
+
+    #[test]
+    fn test_empty_after_header() {
+        let rows = parse("Datum,Beskrivning,Belopp\n").expect("parse should succeed");
+        assert!(rows.is_empty());
+    }
+
+    #[test]
+    fn test_too_few_fields_returns_error() {
+        let csv = "Datum,Beskrivning,Belopp\n04/23/2026,ICA FOCUS\n";
+        assert!(parse(csv).is_err());
+    }
+
+    #[test]
+    fn test_split_simple_fields() {
+        assert_eq!(
+            split_csv_line("a,b,c"),
+            vec!["a".to_string(), "b".to_string(), "c".to_string()]
+        );
+    }
+
+    #[test]
+    fn test_split_quoted_field_with_comma() {
+        // Quotes are stripped; the internal comma is kept as part of the field value.
+        assert_eq!(
+            split_csv_line("\"a,b\",c"),
+            vec!["a,b".to_string(), "c".to_string()]
+        );
+    }
+
+    #[test]
+    fn test_split_empty_middle_field() {
+        assert_eq!(
+            split_csv_line("a,,c"),
+            vec!["a".to_string(), "".to_string(), "c".to_string()]
+        );
+    }
+
+    #[test]
+    fn test_split_amex_quoted_amount() {
+        // Real Amex export pattern: date,desc,"amount,with,decimal,comma"
+        assert_eq!(
+            split_csv_line("04/23/2026,ICA FOCUS,\"112,54\""),
+            vec![
+                "04/23/2026".to_string(),
+                "ICA FOCUS".to_string(),
+                "112,54".to_string(),
+            ]
+        );
+    }
 }
