@@ -110,7 +110,15 @@ fn dec(s: &str) -> Decimal {
 async fn on_conflict_skips_duplicate_in_same_household(pool: PgPool) {
     let hid = create_household(&pool).await;
 
-    insert_tx(&pool, hid, date(2026, 1, 15), "ICA FOCUS", dec("-100.00"), "hash-001").await;
+    insert_tx(
+        &pool,
+        hid,
+        date(2026, 1, 15),
+        "ICA FOCUS",
+        dec("-100.00"),
+        "hash-001",
+    )
+    .await;
 
     // Second insert with same household + dedup_hash: ON CONFLICT DO NOTHING.
     let affected = sqlx::query(
@@ -144,15 +152,34 @@ async fn same_dedup_hash_allowed_across_households(pool: PgPool) {
     let h1 = create_household(&pool).await;
     let h2 = create_household(&pool).await;
 
-    insert_tx(&pool, h1, date(2026, 1, 15), "ICA", dec("-100.00"), "shared-hash").await;
-    insert_tx(&pool, h2, date(2026, 1, 15), "ICA", dec("-100.00"), "shared-hash").await;
+    insert_tx(
+        &pool,
+        h1,
+        date(2026, 1, 15),
+        "ICA",
+        dec("-100.00"),
+        "shared-hash",
+    )
+    .await;
+    insert_tx(
+        &pool,
+        h2,
+        date(2026, 1, 15),
+        "ICA",
+        dec("-100.00"),
+        "shared-hash",
+    )
+    .await;
 
     let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM transactions")
         .fetch_one(&pool)
         .await
         .unwrap();
 
-    assert_eq!(total, 2, "same hash in different households should both be stored");
+    assert_eq!(
+        total, 2,
+        "same hash in different households should both be stored"
+    );
 }
 
 // ── household isolation ───────────────────────────────────────────────────────
@@ -163,7 +190,15 @@ async fn transactions_isolated_by_household(pool: PgPool) {
     let h1 = create_household(&pool).await;
     let h2 = create_household(&pool).await;
 
-    insert_tx(&pool, h1, date(2026, 1, 15), "Expense A", dec("-100.00"), "hash-h1").await;
+    insert_tx(
+        &pool,
+        h1,
+        date(2026, 1, 15),
+        "Expense A",
+        dec("-100.00"),
+        "hash-h1",
+    )
+    .await;
 
     let count: i64 =
         sqlx::query_scalar("SELECT COUNT(*) FROM transactions WHERE household_id = $1")
@@ -172,7 +207,10 @@ async fn transactions_isolated_by_household(pool: PgPool) {
             .await
             .unwrap();
 
-    assert_eq!(count, 0, "household B should not see household A's transactions");
+    assert_eq!(
+        count, 0,
+        "household B should not see household A's transactions"
+    );
 }
 
 // ── category hierarchy ───────────────────────────────────────────────────────
@@ -217,7 +255,15 @@ async fn delete_parent_cascades_and_unclassifies_transactions(pool: PgPool) {
     let parent_id = insert_category(&pool, hid, "Food", "#ff0000").await;
     let sub_id = insert_subcategory(&pool, hid, parent_id, "Groceries", "#00ff00").await;
 
-    let tx_id = insert_tx(&pool, hid, date(2026, 1, 15), "ICA", dec("-100.00"), "hash-casc").await;
+    let tx_id = insert_tx(
+        &pool,
+        hid,
+        date(2026, 1, 15),
+        "ICA",
+        dec("-100.00"),
+        "hash-casc",
+    )
+    .await;
     sqlx::query("UPDATE transactions SET category_id = $1 WHERE id = $2")
         .bind(sub_id)
         .bind(tx_id)
@@ -233,12 +279,11 @@ async fn delete_parent_cascades_and_unclassifies_transactions(pool: PgPool) {
         .await
         .unwrap();
 
-    let sub_count: i64 =
-        sqlx::query_scalar("SELECT COUNT(*) FROM categories WHERE id = $1")
-            .bind(sub_id)
-            .fetch_one(&pool)
-            .await
-            .unwrap();
+    let sub_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM categories WHERE id = $1")
+        .bind(sub_id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
     assert_eq!(sub_count, 0, "subcategory should be cascade-deleted");
 
     let cat_id: Option<Uuid> =
@@ -261,10 +306,24 @@ async fn unprocessed_filter_excludes_classified_and_pending(pool: PgPool) {
     let hid = create_household(&pool).await;
     let cat_id = insert_category(&pool, hid, "Food", "#ff0000").await;
 
-    let classified_id =
-        insert_tx(&pool, hid, date(2026, 1, 15), "Classified", dec("-100.00"), "hash-cl").await;
-    let _unclassified_id =
-        insert_tx(&pool, hid, date(2026, 1, 14), "Unclassified", dec("-50.00"), "hash-un").await;
+    let classified_id = insert_tx(
+        &pool,
+        hid,
+        date(2026, 1, 15),
+        "Classified",
+        dec("-100.00"),
+        "hash-cl",
+    )
+    .await;
+    let _unclassified_id = insert_tx(
+        &pool,
+        hid,
+        date(2026, 1, 14),
+        "Unclassified",
+        dec("-50.00"),
+        "hash-un",
+    )
+    .await;
 
     // Insert a pending transaction (is_pending = true).
     sqlx::query(
@@ -296,7 +355,10 @@ async fn unprocessed_filter_excludes_classified_and_pending(pool: PgPool) {
     .await
     .unwrap();
 
-    assert_eq!(count, 1, "only one unclassified, non-pending transaction expected");
+    assert_eq!(
+        count, 1,
+        "only one unclassified, non-pending transaction expected"
+    );
 }
 
 #[cfg(feature = "integration-tests")]
@@ -304,9 +366,33 @@ async fn unprocessed_filter_excludes_classified_and_pending(pool: PgPool) {
 async fn date_range_filter_returns_matching_transactions(pool: PgPool) {
     let hid = create_household(&pool).await;
 
-    insert_tx(&pool, hid, date(2026, 1, 10), "January",  dec("-100.00"), "hash-jan").await;
-    insert_tx(&pool, hid, date(2026, 2, 15), "February", dec("-200.00"), "hash-feb").await;
-    insert_tx(&pool, hid, date(2026, 3, 20), "March",    dec("-300.00"), "hash-mar").await;
+    insert_tx(
+        &pool,
+        hid,
+        date(2026, 1, 10),
+        "January",
+        dec("-100.00"),
+        "hash-jan",
+    )
+    .await;
+    insert_tx(
+        &pool,
+        hid,
+        date(2026, 2, 15),
+        "February",
+        dec("-200.00"),
+        "hash-feb",
+    )
+    .await;
+    insert_tx(
+        &pool,
+        hid,
+        date(2026, 3, 20),
+        "March",
+        dec("-300.00"),
+        "hash-mar",
+    )
+    .await;
 
     let descriptions: Vec<String> = sqlx::query_scalar(
         "SELECT description FROM transactions \
@@ -330,10 +416,22 @@ async fn category_filter_returns_only_matching_transactions(pool: PgPool) {
     let food_id = insert_category(&pool, hid, "Food", "#ff0000").await;
     let transport_id = insert_category(&pool, hid, "Transport", "#00ff00").await;
 
-    let food_tx =
-        insert_tx(&pool, hid, date(2026, 1, 10), "ICA", dec("-100.00"), "hash-food").await;
+    let food_tx = insert_tx(
+        &pool,
+        hid,
+        date(2026, 1, 10),
+        "ICA",
+        dec("-100.00"),
+        "hash-food",
+    )
+    .await;
     let transport_tx = insert_tx(
-        &pool, hid, date(2026, 1, 11), "SL Card", dec("-50.00"), "hash-sl",
+        &pool,
+        hid,
+        date(2026, 1, 11),
+        "SL Card",
+        dec("-50.00"),
+        "hash-sl",
     )
     .await;
 
@@ -370,9 +468,33 @@ async fn category_filter_returns_only_matching_transactions(pool: PgPool) {
 async fn dashboard_aggregation_sums_expenses_and_income(pool: PgPool) {
     let hid = create_household(&pool).await;
 
-    insert_tx(&pool, hid, date(2026, 6, 1), "Expense A", dec("-100.00"), "hash-e1").await;
-    insert_tx(&pool, hid, date(2026, 6, 5), "Expense B", dec("-250.00"), "hash-e2").await;
-    insert_tx(&pool, hid, date(2026, 6, 10), "Income",    dec("3000.00"), "hash-i1").await;
+    insert_tx(
+        &pool,
+        hid,
+        date(2026, 6, 1),
+        "Expense A",
+        dec("-100.00"),
+        "hash-e1",
+    )
+    .await;
+    insert_tx(
+        &pool,
+        hid,
+        date(2026, 6, 5),
+        "Expense B",
+        dec("-250.00"),
+        "hash-e2",
+    )
+    .await;
+    insert_tx(
+        &pool,
+        hid,
+        date(2026, 6, 10),
+        "Income",
+        dec("3000.00"),
+        "hash-i1",
+    )
+    .await;
 
     let month_start = date(2026, 6, 1);
     let (expenses, income): (Decimal, Decimal) = sqlx::query_as(
@@ -409,10 +531,22 @@ async fn dashboard_excludes_ignored_categories(pool: PgPool) {
     .await
     .unwrap();
 
-    let normal_tx =
-        insert_tx(&pool, hid, date(2026, 6, 1), "Coffee", dec("-50.00"), "hash-cof").await;
+    let normal_tx = insert_tx(
+        &pool,
+        hid,
+        date(2026, 6, 1),
+        "Coffee",
+        dec("-50.00"),
+        "hash-cof",
+    )
+    .await;
     let ignored_tx = insert_tx(
-        &pool, hid, date(2026, 6, 2), "Savings", dec("-1000.00"), "hash-sav",
+        &pool,
+        hid,
+        date(2026, 6, 2),
+        "Savings",
+        dec("-1000.00"),
+        "hash-sav",
     )
     .await;
 
@@ -452,10 +586,42 @@ async fn dashboard_excludes_ignored_categories(pool: PgPool) {
 async fn spending_over_time_groups_by_calendar_month(pool: PgPool) {
     let hid = create_household(&pool).await;
 
-    insert_tx(&pool, hid, date(2026, 1, 10), "Jan A", dec("-100.00"), "hash-j1").await;
-    insert_tx(&pool, hid, date(2026, 1, 20), "Jan B", dec("-200.00"), "hash-j2").await;
-    insert_tx(&pool, hid, date(2026, 2, 5),  "Feb A", dec("-150.00"), "hash-f1").await;
-    insert_tx(&pool, hid, date(2026, 2, 15), "Feb salary", dec("3000.00"), "hash-f2").await;
+    insert_tx(
+        &pool,
+        hid,
+        date(2026, 1, 10),
+        "Jan A",
+        dec("-100.00"),
+        "hash-j1",
+    )
+    .await;
+    insert_tx(
+        &pool,
+        hid,
+        date(2026, 1, 20),
+        "Jan B",
+        dec("-200.00"),
+        "hash-j2",
+    )
+    .await;
+    insert_tx(
+        &pool,
+        hid,
+        date(2026, 2, 5),
+        "Feb A",
+        dec("-150.00"),
+        "hash-f1",
+    )
+    .await;
+    insert_tx(
+        &pool,
+        hid,
+        date(2026, 2, 15),
+        "Feb salary",
+        dec("3000.00"),
+        "hash-f2",
+    )
+    .await;
 
     let rows: Vec<(String, Decimal, Decimal)> = sqlx::query_as(
         "SELECT \
@@ -480,7 +646,7 @@ async fn spending_over_time_groups_by_calendar_month(pool: PgPool) {
     assert_eq!(rows.len(), 2);
     assert_eq!(rows[0].0, "2026-01");
     assert_eq!(rows[0].1, dec("300.00"), "January expenses");
-    assert_eq!(rows[0].2, dec("0"),      "January income");
+    assert_eq!(rows[0].2, dec("0"), "January income");
     assert_eq!(rows[1].0, "2026-02");
     assert_eq!(rows[1].1, dec("150.00"), "February expenses");
     assert_eq!(rows[1].2, dec("3000.00"), "February income");

@@ -13,9 +13,9 @@ pub fn HouseholdSettings() -> Element {
     let nav = use_navigator();
 
     let current_code = move || {
-        override_code().clone().or_else(|| {
-            info().and_then(|r| r.ok()).map(|h| h.invite_code)
-        })
+        override_code()
+            .clone()
+            .or_else(|| info().and_then(|r| r.ok()).map(|h| h.invite_code))
     };
 
     let on_copy = move |_| {
@@ -50,7 +50,9 @@ pub fn HouseholdSettings() -> Element {
         leave_error.set(None);
         spawn(async move {
             match leave_household().await {
-                Ok(()) => { nav.push("/household/setup"); }
+                Ok(()) => {
+                    nav.push("/household/setup");
+                }
                 Err(e) => {
                     leave_error.set(Some(e.to_string()));
                     leave_loading.set(false);

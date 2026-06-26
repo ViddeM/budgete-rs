@@ -1,8 +1,8 @@
-use crate::models::{HouseholdInfo, HouseholdMember};
+use crate::models::HouseholdInfo;
 use dioxus::prelude::*;
 
 #[cfg(feature = "server")]
-use {crate::auth::session::current_user_id, crate::db::pool};
+use {crate::auth::session::current_user_id, crate::db::pool, crate::models::HouseholdMember};
 
 /// Get info about the current user's household.
 #[server]
@@ -24,13 +24,12 @@ pub async fn get_household_info() -> Result<HouseholdInfo, ServerFnError> {
     let (household_id, name, invite_code) =
         row.ok_or_else(|| ServerFnError::new("User has no household"))?;
 
-    let members: Vec<(Option<String>, Option<String>)> = sqlx::query_as(
-        "SELECT name, email FROM users WHERE household_id = $1 ORDER BY created_at",
-    )
-    .bind(household_id)
-    .fetch_all(db)
-    .await
-    .map_err(|e| ServerFnError::new(e.to_string()))?;
+    let members: Vec<(Option<String>, Option<String>)> =
+        sqlx::query_as("SELECT name, email FROM users WHERE household_id = $1 ORDER BY created_at")
+            .bind(household_id)
+            .fetch_all(db)
+            .await
+            .map_err(|e| ServerFnError::new(e.to_string()))?;
 
     Ok(HouseholdInfo {
         id: household_id,
@@ -83,8 +82,7 @@ pub async fn join_household(invite_code: String) -> Result<(), ServerFnError> {
             .await
             .map_err(|e| ServerFnError::new(e.to_string()))?;
 
-    let household_id =
-        household_id.ok_or_else(|| ServerFnError::new("Invalid invite code"))?;
+    let household_id = household_id.ok_or_else(|| ServerFnError::new("Invalid invite code"))?;
 
     sqlx::query("UPDATE users SET household_id = $1 WHERE id = $2")
         .bind(household_id)
@@ -141,7 +139,6 @@ fn generate_invite_code() -> String {
     let bytes = id.as_bytes();
     format!(
         "{:02X}{:02X}{:02X}{:02X}-{:02X}{:02X}{:02X}{:02X}",
-        bytes[0], bytes[1], bytes[2], bytes[3],
-        bytes[4], bytes[5], bytes[6], bytes[7]
+        bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7]
     )
 }

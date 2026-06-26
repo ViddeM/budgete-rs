@@ -81,13 +81,11 @@ pub async fn ensure_local_household() -> Result<(), sqlx::Error> {
     .execute(pool())
     .await?;
 
-    sqlx::query(
-        "UPDATE users SET household_id = $1 WHERE id = $2 AND household_id IS NULL",
-    )
-    .bind(LOCAL_HOUSEHOLD_ID)
-    .bind(LOCAL_USER_ID)
-    .execute(pool())
-    .await?;
+    sqlx::query("UPDATE users SET household_id = $1 WHERE id = $2 AND household_id IS NULL")
+        .bind(LOCAL_HOUSEHOLD_ID)
+        .bind(LOCAL_USER_ID)
+        .execute(pool())
+        .await?;
 
     Ok(())
 }

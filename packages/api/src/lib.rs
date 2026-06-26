@@ -22,11 +22,11 @@ pub(crate) mod csv;
 #[cfg(feature = "server")]
 pub mod auth;
 
+#[cfg(feature = "server")]
+pub use auth::current_household_id;
 /// Convenience re-exports so web can call auth helpers directly.
 #[cfg(feature = "server")]
 pub use auth::current_user_id;
-#[cfg(feature = "server")]
-pub use auth::current_household_id;
 #[cfg(feature = "server")]
 pub use auth::ensure_local_household;
 

@@ -104,14 +104,12 @@ pub async fn classify_transaction(
 ) -> Result<(), ServerFnError> {
     let household_id = current_household_id().await?;
     let db = pool();
-    sqlx::query(
-        "UPDATE transactions SET category_id = $1 WHERE id = $2 AND household_id = $3",
-    )
-    .bind(category_id)
-    .bind(tx_id)
-    .bind(household_id)
-    .execute(db)
-    .await
-    .map_err(|e| ServerFnError::new(e.to_string()))?;
+    sqlx::query("UPDATE transactions SET category_id = $1 WHERE id = $2 AND household_id = $3")
+        .bind(category_id)
+        .bind(tx_id)
+        .bind(household_id)
+        .execute(db)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
     Ok(())
 }

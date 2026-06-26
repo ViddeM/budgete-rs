@@ -108,7 +108,12 @@ mod tests {
         let restaurant_id = Uuid::new_v4();
         let input = vec![
             cat(groceries_id, "Groceries", Some((food_id, "Food")), "200.00"),
-            cat(restaurant_id, "Restaurant", Some((food_id, "Food")), "150.00"),
+            cat(
+                restaurant_id,
+                "Restaurant",
+                Some((food_id, "Food")),
+                "150.00",
+            ),
         ];
         let groups = build_groups(&input);
         assert_eq!(groups.len(), 1);

@@ -45,22 +45,34 @@ mod tests {
 
     #[test]
     fn thousands_separator() {
-        assert_eq!(parse_swedish_decimal("1 234,56").unwrap().to_string(), "1234.56");
+        assert_eq!(
+            parse_swedish_decimal("1 234,56").unwrap().to_string(),
+            "1234.56"
+        );
     }
 
     #[test]
     fn negative_ascii_minus() {
-        assert_eq!(parse_swedish_decimal("-175,00").unwrap().to_string(), "-175.00");
+        assert_eq!(
+            parse_swedish_decimal("-175,00").unwrap().to_string(),
+            "-175.00"
+        );
     }
 
     #[test]
     fn negative_unicode_minus() {
-        assert_eq!(parse_swedish_decimal("\u{2212}175,00").unwrap().to_string(), "-175.00");
+        assert_eq!(
+            parse_swedish_decimal("\u{2212}175,00").unwrap().to_string(),
+            "-175.00"
+        );
     }
 
     #[test]
     fn negative_with_thousands() {
-        assert_eq!(parse_swedish_decimal("-1 500,00").unwrap().to_string(), "-1500.00");
+        assert_eq!(
+            parse_swedish_decimal("-1 500,00").unwrap().to_string(),
+            "-1500.00"
+        );
     }
 
     #[test]
@@ -70,7 +82,10 @@ mod tests {
 
     #[test]
     fn leading_trailing_whitespace_trimmed() {
-        assert_eq!(parse_swedish_decimal("  42,50  ").unwrap().to_string(), "42.50");
+        assert_eq!(
+            parse_swedish_decimal("  42,50  ").unwrap().to_string(),
+            "42.50"
+        );
     }
 
     #[test]

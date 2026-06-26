@@ -133,7 +133,10 @@ mod tests {
 
     #[test]
     fn fmt_tx_amount_positive_with_thousands() {
-        assert_eq!(fmt_tx_amount(dec("1234.50"), "SEK"), format!("1{NBSP}234.50 SEK"));
+        assert_eq!(
+            fmt_tx_amount(dec("1234.50"), "SEK"),
+            format!("1{NBSP}234.50 SEK")
+        );
     }
 
     #[test]

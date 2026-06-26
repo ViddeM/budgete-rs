@@ -1,7 +1,10 @@
 use api::get_theme;
 use dioxus::document::eval;
 use dioxus::prelude::*;
-use views::{Analytics, Classify, Dashboard, HouseholdSettings, HouseholdSetup, Login, Projects, Transactions, Upload};
+use views::{
+    Analytics, Classify, Dashboard, HouseholdSettings, HouseholdSetup, Login, Projects,
+    Transactions, Upload,
+};
 
 mod views;
 
@@ -68,8 +71,7 @@ fn main() {
                 .await
                 .expect("failed to ensure local household");
 
-            dioxus::server::router(App)
-                .route("/api/auth/logout", get(handlers::logout_handler))
+            dioxus::server::router(App).route("/api/auth/logout", get(handlers::logout_handler))
         } else {
             dioxus::server::router(App)
                 .route("/api/auth/login", get(handlers::login_handler))
