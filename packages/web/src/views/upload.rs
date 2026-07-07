@@ -1,7 +1,15 @@
-use api::models::{ImportResult, ImportSource};
-use api::{import_csv, preview_csv};
+use api::models::{CreateTransactionRequest, ImportResult, ImportSource};
+use api::{create_transaction, create_transactions_bulk, import_csv, preview_csv};
 use base64::Engine as _;
 use dioxus::prelude::*;
+use ui::{BulkTransactionForm, BulkTransactionPaste, ManualTransactionForm};
+
+#[derive(Clone, PartialEq)]
+enum ManualTab {
+    Single,
+    BulkRows,
+    BulkPaste,
+}
 
 #[component]
 pub fn Upload() -> Element {
@@ -13,9 +21,12 @@ pub fn Upload() -> Element {
     let mut preview: Signal<Option<ImportResult>> = use_signal(|| None);
     // Actual import counts returned by `import_csv` after confirmation.
     let mut result: Signal<Option<ImportResult>> = use_signal(|| None);
+    // Result of manual creation (single or bulk).
+    let mut manual_result: Signal<Option<ManualResult>> = use_signal(|| None);
     let mut error: Signal<Option<String>> = use_signal(|| None);
     let mut loading = use_signal(|| false);
     let mut loading_msg: Signal<&'static str> = use_signal(|| "");
+    let mut active_tab = use_signal(|| ManualTab::Single);
 
     // When the source dropdown changes, update the source and re-run the preview
     // if a file has already been loaded, so the counts reflect the new format.
@@ -52,6 +63,7 @@ pub fn Upload() -> Element {
         error.set(None);
         preview.set(None);
         result.set(None);
+        manual_result.set(None);
         pending_content.set(None);
 
         let files = evt.files();
@@ -101,10 +113,38 @@ pub fn Upload() -> Element {
         };
         error.set(None);
         preview.set(None);
+        manual_result.set(None);
         loading.set(true);
         loading_msg.set("Importing…");
         match import_csv(source(), content).await {
             Ok(r) => result.set(Some(r)),
+            Err(e) => error.set(Some(e.to_string())),
+        }
+        loading.set(false);
+    };
+
+    // Manual creation handlers.
+    let on_single_submit = move |req: CreateTransactionRequest| async move {
+        error.set(None);
+        result.set(None);
+        manual_result.set(None);
+        loading.set(true);
+        loading_msg.set("Adding…");
+        match create_transaction(req).await {
+            Ok(_) => manual_result.set(Some(ManualResult::Single)),
+            Err(e) => error.set(Some(e.to_string())),
+        }
+        loading.set(false);
+    };
+
+    let on_bulk_submit = move |reqs: Vec<CreateTransactionRequest>| async move {
+        error.set(None);
+        result.set(None);
+        manual_result.set(None);
+        loading.set(true);
+        loading_msg.set("Adding…");
+        match create_transactions_bulk(reqs).await {
+            Ok(r) => manual_result.set(Some(ManualResult::Bulk(r))),
             Err(e) => error.set(Some(e.to_string())),
         }
         loading.set(false);
@@ -116,9 +156,10 @@ pub fn Upload() -> Element {
     } else {
         ".csv,text/csv"
     };
+
     rsx! {
         div {
-            class: "view view--narrow",
+            class: "view view--upload",
             h1 { class: "view__title", "Upload transactions" }
 
             div {
@@ -205,6 +246,102 @@ pub fn Upload() -> Element {
                 onclick: on_upload,
                 "Upload"
             }
+
+            // ── Manual entry section ────────────────────────────────────────
+            div {
+                class: "manual-entry",
+                h2 { class: "manual-entry__title", "Or add transactions manually" }
+
+                div {
+                    class: "manual-entry__tabs",
+                    TabButton {
+                        label: "Single",
+                        active: active_tab() == ManualTab::Single,
+                        onclick: move |_| active_tab.set(ManualTab::Single),
+                    }
+                    TabButton {
+                        label: "Bulk rows",
+                        active: active_tab() == ManualTab::BulkRows,
+                        onclick: move |_| active_tab.set(ManualTab::BulkRows),
+                    }
+                    TabButton {
+                        label: "Bulk paste",
+                        active: active_tab() == ManualTab::BulkPaste,
+                        onclick: move |_| active_tab.set(ManualTab::BulkPaste),
+                    }
+                }
+
+                match active_tab() {
+                    ManualTab::Single => rsx! {
+                        ManualTransactionForm {
+                            on_submit: EventHandler::new(on_single_submit),
+                            loading: loading(),
+                        }
+                    },
+                    ManualTab::BulkRows => rsx! {
+                        BulkTransactionForm {
+                            on_submit: EventHandler::new(on_bulk_submit),
+                            loading: loading(),
+                        }
+                    },
+                    ManualTab::BulkPaste => rsx! {
+                        BulkTransactionPaste {
+                            on_submit: EventHandler::new(on_bulk_submit),
+                            loading: loading(),
+                        }
+                    },
+                }
+
+                // Result box shown after a successful manual creation.
+                if let Some(m) = manual_result() {
+                    div {
+                        class: "upload-result",
+                        style: "margin-top: 20px;",
+                        p { class: "upload-result__title", "Added manually" }
+                        ul {
+                            class: "upload-result__list",
+                            {m.render()}
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[derive(Clone)]
+enum ManualResult {
+    Single,
+    Bulk(ImportResult),
+}
+
+impl ManualResult {
+    fn render(self) -> Element {
+        match self {
+            ManualResult::Single => rsx! {
+                li { "1 transaction added" }
+            },
+            ManualResult::Bulk(r) => rsx! {
+                li { "{r.imported} transactions added" }
+                li { "{r.skipped} duplicates skipped" }
+                li { "{r.pending} pending (no date)" }
+            },
+        }
+    }
+}
+
+#[component]
+fn TabButton(label: String, active: bool, onclick: EventHandler<()>) -> Element {
+    let class = if active {
+        "manual-entry__tab manual-entry__tab--active"
+    } else {
+        "manual-entry__tab"
+    };
+    rsx! {
+        button {
+            class: "{class}",
+            onclick: move |_| onclick.call(()),
+            "{label}"
         }
     }
 }
