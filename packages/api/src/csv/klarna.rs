@@ -16,8 +16,7 @@ use chrono::NaiveDate;
 pub fn parse(pdf_bytes: &[u8]) -> Result<Vec<ParsedRow>, String> {
     use std::io::Write as _;
 
-    let tmp_dir = tempfile::tempdir()
-        .map_err(|e| format!("Failed to create temp dir: {e}"))?;
+    let tmp_dir = tempfile::tempdir().map_err(|e| format!("Failed to create temp dir: {e}"))?;
     let pdf_path = tmp_dir.path().join("klarna.pdf");
     let page_prefix = tmp_dir.path().join("page");
 
@@ -29,7 +28,8 @@ pub fn parse(pdf_bytes: &[u8]) -> Result<Vec<ParsedRow>, String> {
     let pdftoppm = std::process::Command::new("pdftoppm")
         .args([
             "-png",
-            "-r", "200",
+            "-r",
+            "200",
             pdf_path.to_str().unwrap(),
             page_prefix.to_str().unwrap(),
         ])
@@ -60,8 +60,10 @@ pub fn parse(pdf_bytes: &[u8]) -> Result<Vec<ParsedRow>, String> {
             .args([
                 page.to_str().unwrap(),
                 "stdout",
-                "-l", "eng+swe",
-                "--psm", "6",
+                "-l",
+                "eng+swe",
+                "--psm",
+                "6",
             ])
             .output()
             .map_err(|e| format!("tesseract not available: {e}"))?;
