@@ -19,6 +19,14 @@ pub struct Category {
     pub ignored: bool,
 }
 
+impl Category {
+    /// Returns `true` when this category's transactions should be excluded from
+    /// totals and analytics aggregations.
+    pub fn is_ignored(&self) -> bool {
+        self.ignored
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Group {
     pub id: Uuid,
@@ -38,6 +46,14 @@ pub struct Transaction {
     pub is_pending: bool,
     /// `None` when the transaction has not yet been classified.
     pub category: Option<Category>,
+}
+
+impl Transaction {
+    /// Returns `true` when this transaction belongs to an ignored category and
+    /// should be excluded from totals and analytics aggregations.
+    pub fn is_ignored(&self) -> bool {
+        self.category.as_ref().is_some_and(|c| c.is_ignored())
+    }
 }
 
 // ---------------------------------------------------------------------------
