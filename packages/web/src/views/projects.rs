@@ -93,14 +93,17 @@ pub fn Projects() -> Element {
         })
         .collect();
 
-    // Stats for the selected project
+    // Stats for the selected project — exclude transactions whose category is
+    // marked as ignored, consistent with dashboard and analytics aggregations.
     let total_expense: Decimal = project_txs
         .iter()
+        .filter(|t| t.category.as_ref().is_none_or(|c| !c.ignored))
         .filter(|t| t.amount < Decimal::ZERO)
         .map(|t| -t.amount)
         .sum();
     let total_income: Decimal = project_txs
         .iter()
+        .filter(|t| t.category.as_ref().is_none_or(|c| !c.ignored))
         .filter(|t| t.amount > Decimal::ZERO)
         .map(|t| t.amount)
         .sum();
