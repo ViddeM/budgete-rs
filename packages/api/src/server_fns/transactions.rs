@@ -12,17 +12,19 @@ use {
     std::fmt::Write as _,
 };
 
-/// Compute the dedup hash for a parsed CSV row.
+/// Compute the dedup hash for raw transaction fields.
+/// This is the single source of truth used by CSV imports and manual entry.
 #[cfg(feature = "server")]
-fn compute_dedup_hash(source_str: &str, row: &crate::csv::ParsedRow) -> String {
-    let date_str = row
-        .date
+fn compute_dedup_hash(
+    source_str: &str,
+    date: Option<chrono::NaiveDate>,
+    description: &str,
+    amount: rust_decimal::Decimal,
+) -> String {
+    let date_str = date
         .map(|d| d.to_string())
         .unwrap_or_else(|| "pending".to_string());
-    let hash_input = format!(
-        "{}|{}|{}|{}",
-        source_str, date_str, row.description, row.amount
-    );
+    let hash_input = format!("{}|{}|{}|{}", source_str, date_str, description, amount);
     let mut hasher = Sha256::new();
     hasher.update(hash_input.as_bytes());
     let hash_bytes = hasher.finalize();
@@ -31,6 +33,12 @@ fn compute_dedup_hash(source_str: &str, row: &crate::csv::ParsedRow) -> String {
         write!(dedup_hash, "{b:02x}").unwrap();
     }
     dedup_hash
+}
+
+/// Compute the dedup hash for a parsed CSV row.
+#[cfg(feature = "server")]
+fn compute_dedup_hash_for_row(source_str: &str, row: &crate::csv::ParsedRow) -> String {
+    compute_dedup_hash(source_str, row.date, &row.description, row.amount)
 }
 
 /// Parse the import content for any supported source into [`ParsedRow`]s.
@@ -58,8 +66,8 @@ mod tests {
             "-100.50",
         );
         assert_eq!(
-            compute_dedup_hash("amex", &row),
-            compute_dedup_hash("amex", &row)
+            compute_dedup_hash_for_row("amex", &row),
+            compute_dedup_hash_for_row("amex", &row)
         );
     }
 
@@ -70,7 +78,7 @@ mod tests {
             "ICA FOCUS",
             "-100.00",
         );
-        let hash = compute_dedup_hash("amex", &row);
+        let hash = compute_dedup_hash_for_row("amex", &row);
         assert_eq!(hash.len(), 64);
         assert!(hash.chars().all(|c| c.is_ascii_hexdigit()));
     }
@@ -83,8 +91,8 @@ mod tests {
             "-100.00",
         );
         assert_ne!(
-            compute_dedup_hash("amex", &row),
-            compute_dedup_hash("nordea", &row)
+            compute_dedup_hash_for_row("amex", &row),
+            compute_dedup_hash_for_row("nordea", &row)
         );
     }
 
@@ -101,8 +109,8 @@ mod tests {
             "-200.00",
         );
         assert_ne!(
-            compute_dedup_hash("amex", &r1),
-            compute_dedup_hash("amex", &r2)
+            compute_dedup_hash_for_row("amex", &r1),
+            compute_dedup_hash_for_row("amex", &r2)
         );
     }
 
@@ -119,8 +127,8 @@ mod tests {
             "-100.00",
         );
         assert_ne!(
-            compute_dedup_hash("amex", &r1),
-            compute_dedup_hash("amex", &r2)
+            compute_dedup_hash_for_row("amex", &r1),
+            compute_dedup_hash_for_row("amex", &r2)
         );
     }
 
@@ -140,8 +148,8 @@ mod tests {
         };
         // "pending" is used as the date string for rows with no date.
         assert_ne!(
-            compute_dedup_hash("nordea", &dated),
-            compute_dedup_hash("nordea", &pending)
+            compute_dedup_hash_for_row("nordea", &dated),
+            compute_dedup_hash_for_row("nordea", &pending)
         );
     }
 }
@@ -192,7 +200,7 @@ pub async fn preview_csv(
 
     let hashes: Vec<String> = rows
         .iter()
-        .map(|row| compute_dedup_hash(&source_str, row))
+        .map(|row| compute_dedup_hash_for_row(&source_str, row))
         .collect();
 
     let existing: std::collections::HashSet<String> = sqlx::query_scalar(
@@ -247,7 +255,7 @@ pub async fn import_csv(
     let mut pending: u32 = 0;
 
     for row in rows {
-        let dedup_hash = compute_dedup_hash(&source_str, &row);
+        let dedup_hash = compute_dedup_hash_for_row(&source_str, &row);
 
         let result = sqlx::query(
             r#"
@@ -271,6 +279,149 @@ pub async fn import_csv(
         if result.rows_affected() == 0 {
             skipped += 1;
         } else if row.is_pending {
+            pending += 1;
+        } else {
+            imported += 1;
+        }
+    }
+
+    Ok(ImportResult {
+        imported,
+        skipped,
+        pending,
+    })
+}
+
+/// Validate and normalize a manual transaction request.
+#[cfg(feature = "server")]
+fn normalize_create_request(
+    mut req: crate::models::CreateTransactionRequest,
+) -> crate::models::CreateTransactionRequest {
+    req.description = req.description.trim().to_string();
+    req.source = req.source.trim().to_string();
+    req.currency = req.currency.trim().to_ascii_uppercase().to_string();
+    req
+}
+
+/// Validate a manual transaction request, returning a human-friendly error
+/// message when it is invalid.
+#[cfg(feature = "server")]
+fn validate_create_request(req: &crate::models::CreateTransactionRequest) -> Result<(), String> {
+    if req.description.is_empty() {
+        return Err("Description cannot be empty".to_string());
+    }
+    if req.source.is_empty() {
+        return Err("Source cannot be empty".to_string());
+    }
+    if req.currency.is_empty() {
+        return Err("Currency cannot be empty".to_string());
+    }
+    if req.amount.is_zero() {
+        return Err("Amount cannot be zero".to_string());
+    }
+    Ok(())
+}
+
+/// Insert a single manually-created transaction into the current household.
+#[server]
+pub async fn create_transaction(
+    req: crate::models::CreateTransactionRequest,
+) -> Result<crate::models::Transaction, ServerFnError> {
+    let household_id = current_household_id().await?;
+    let req = normalize_create_request(req);
+    validate_create_request(&req).map_err(ServerFnError::new)?;
+
+    let db = pool();
+    let is_pending = req.date.is_none();
+    let dedup_hash = compute_dedup_hash(&req.source, req.date, &req.description, req.amount);
+
+    let row: TransactionRow = sqlx::query_as(
+        r#"
+        INSERT INTO transactions (date, description, amount, source, currency, dedup_hash, is_pending, household_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        ON CONFLICT (household_id, dedup_hash) DO NOTHING
+        RETURNING
+            id,
+            date,
+            description,
+            amount,
+            source,
+            currency,
+            is_pending,
+            category_id,
+            NULL::text AS category_name,
+            NULL::text AS category_color,
+            NULL::uuid AS category_parent_id,
+            NULL::bool AS category_ignored
+        "#,
+    )
+    .bind(req.date)
+    .bind(&req.description)
+    .bind(req.amount)
+    .bind(&req.source)
+    .bind(&req.currency)
+    .bind(&dedup_hash)
+    .bind(is_pending)
+    .bind(household_id)
+    .fetch_one(db)
+    .await
+    .map_err(|e| {
+        if e.to_string().contains("duplicate") {
+            ServerFnError::new("This transaction already exists")
+        } else {
+            ServerFnError::new(e.to_string())
+        }
+    })?;
+
+    Ok(row.into())
+}
+
+/// Insert many manually-created transactions for the current household.
+/// Returns counts of imported / skipped / pending rows. Duplicates are
+/// silently skipped exactly like CSV imports.
+#[server]
+pub async fn create_transactions_bulk(
+    reqs: Vec<crate::models::CreateTransactionRequest>,
+) -> Result<ImportResult, ServerFnError> {
+    let household_id = current_household_id().await?;
+    let db = pool();
+
+    let mut imported: u32 = 0;
+    let mut skipped: u32 = 0;
+    let mut pending: u32 = 0;
+
+    for mut req in reqs {
+        req = normalize_create_request(req);
+        if validate_create_request(&req).is_err() {
+            skipped += 1;
+            continue;
+        }
+
+        let is_pending = req.date.is_none();
+        let dedup_hash = compute_dedup_hash(&req.source, req.date, &req.description, req.amount);
+
+        let result = sqlx::query(
+            r#"
+            INSERT INTO transactions (date, description, amount, source, currency, dedup_hash, is_pending, household_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            ON CONFLICT (household_id, dedup_hash) DO NOTHING
+            "#,
+        )
+        .bind(req.date)
+        .bind(&req.description)
+        .bind(req.amount)
+        .bind(&req.source)
+        .bind(&req.currency)
+        .bind(&dedup_hash)
+        .bind(is_pending)
+        .bind(household_id)
+        .execute(db)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+        if result.rows_affected() == 0 {
+            skipped += 1;
+        } else if is_pending {
             pending += 1;
         } else {
             imported += 1;

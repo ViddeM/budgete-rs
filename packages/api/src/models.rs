@@ -60,6 +60,18 @@ pub struct TransactionFilter {
     pub date_to: Option<NaiveDate>,
 }
 
+/// Request to create one transaction manually from the upload page.
+/// No `category_id` is provided — these transactions always enter the
+/// unprocessed queue so they can be classified the same way as CSV imports.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CreateTransactionRequest {
+    pub date: Option<NaiveDate>,
+    pub description: String,
+    pub amount: Decimal,
+    pub currency: String,
+    pub source: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct DashboardStats {
     /// Total expenses this calendar month (negative value → stored as positive for display)

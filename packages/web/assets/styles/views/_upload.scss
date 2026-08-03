@@ -1,3 +1,159 @@
+// ── Manual entry section on the upload page ─────────────────────────────
+
+.manual-entry {
+  margin-top: 40px;
+  padding-top: 28px;
+  border-top: 1px solid var(--border);
+
+  &__title {
+    margin: 0 0 16px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  &__tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  &__tab {
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    cursor: pointer;
+
+    &--active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--accent-text);
+      font-weight: 600;
+    }
+  }
+}
+
+// ── Bulk row form (spreadsheet style) ─────────────────────────────────────
+
+.bulk-form {
+  &__header,
+  &__row {
+    display: grid;
+    grid-template-columns: 1.25fr 2fr 1fr 0.9fr 1fr auto;
+    gap: 10px;
+    align-items: center;
+  }
+
+  &__header {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+    padding: 0 10px;
+  }
+
+  &__row {
+    padding: 12px;
+    margin-bottom: 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+
+    input {
+      width: 100%;
+      min-width: 0;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 14px;
+  }
+}
+
+// ── Bulk paste form ───────────────────────────────────────────────────────
+
+.bulk-paste {
+  &__options {
+    margin-bottom: 12px;
+  }
+
+  &__textarea {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    resize: vertical;
+    min-height: 140px;
+  }
+
+  &__preview {
+    margin-top: 16px;
+    padding: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  &__preview-title {
+    margin: 0 0 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  &__preview-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__preview-row {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr 1fr;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+
+  &__actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 16px;
+  }
+}
+
+// ── Mobile: stack bulk form rows vertically ───────────────────────────────
+
+@media (max-width: 640px) {
+  .bulk-form__header {
+    display: none;
+  }
+
+  .bulk-form__row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 12px;
+    margin-bottom: 12px;
+
+    button {
+      justify-self: flex-start;
+      margin-top: 4px;
+    }
+  }
+
+  .bulk-paste__preview-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 // ── Upload preview box (shown before confirming import) ──────────────────
 
 .upload-preview {

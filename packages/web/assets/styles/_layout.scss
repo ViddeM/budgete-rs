@@ -10,6 +10,11 @@
   &--wide {
     max-width: 960px;
   }
+
+  // Upload page needs extra width for the manual bulk-entry table.
+  &--upload {
+    max-width: 900px;
+  }
 }
 
 .view__title {
