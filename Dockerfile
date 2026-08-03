@@ -32,7 +32,12 @@ RUN dx bundle --release --package web
 
 #FROM scratch AS runtime
 FROM chef AS runtime
-RUN apt-get update && apt-get install -y --no-install-recommends poppler-utils && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    poppler-utils \
+    tesseract-ocr \
+    tesseract-ocr-eng \
+    tesseract-ocr-swe \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /app/target/dx/web/release/web/ /usr/local/app/
 
 ENV PORT=8080

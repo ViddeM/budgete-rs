@@ -1,103 +1,101 @@
 use super::{parse_swedish_decimal, ParsedRow};
 use chrono::NaiveDate;
 
-/// Parse a Klarna Monthly invoice PDF.
-///
-/// The PDF contains a table with columns: DATE | DESCRIPTION | PAYMENT METHOD | AMOUNT
-/// - Date: YYYY-MM-DD (ISO 8601)
-/// - Amount: Swedish decimal, positive = charge → we flip to negative (same convention as Amex).
-/// - Currency is always SEK; there are no pending rows in the monthly invoice.
-///
-/// `pdf_bytes` is the raw binary content of the PDF file.
-///
-/// Some Klarna PDFs are generated with an incomplete ToUnicode CMap (missing glyph→Unicode
-/// mappings). In that case `pdf-extract` returns garbled text and zero rows. We detect this and
-/// fall back to `pdftotext -layout` (poppler), which recovers the layout but still substitutes
-/// two characters due to the same missing CMap: `-` → `j` and `9` → `>`. We normalise those
-/// before parsing, which correctly recovers dates and amounts (descriptions stay garbled but are
-/// still useful for dedup via SHA-256).
-#[cfg(feature = "server")]
-pub fn parse(pdf_bytes: &[u8]) -> Result<Vec<ParsedRow>, String> {
-    let text = pdf_extract::extract_text_from_mem(pdf_bytes)
-        .map_err(|e| format!("Failed to extract text from Klarna PDF: {e}"))?;
-
-    let rows = parse_text(&text);
-
-    // If pdf-extract produced unusable output (garbled font / no line breaks), fall back to
-    // pdftotext which handles layout recovery better.
-    let rows = match rows {
-        Ok(r) if !r.is_empty() => return Ok(r),
-        _ => extract_via_pdftotext(pdf_bytes)?,
-    };
-
-    Ok(rows)
-}
-
-/// Write `pdf_bytes` to a temp file, run `pdftotext -layout`, normalise the two known glyph
-/// substitutions (`j`→`-`, `>`→`9`), then parse the recovered text.
-#[cfg(feature = "server")]
-fn extract_via_pdftotext(pdf_bytes: &[u8]) -> Result<Vec<ParsedRow>, String> {
-    use std::io::Write as _;
-
-    // Write bytes to a named temp file that pdftotext can read.
-    let tmp_path = std::env::temp_dir().join("klarna_import.pdf");
-    let mut f = std::fs::File::create(&tmp_path)
-        .map_err(|e| format!("Failed to create temp file for pdftotext: {e}"))?;
-    f.write_all(pdf_bytes)
-        .map_err(|e| format!("Failed to write temp PDF: {e}"))?;
-    drop(f);
-
-    let output = std::process::Command::new("pdftotext")
-        .args(["-layout", tmp_path.to_str().unwrap_or(""), "-"])
-        .output()
-        .map_err(|e| format!("pdftotext not available: {e}"))?;
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("pdftotext failed: {stderr}"));
-    }
-
-    let raw = String::from_utf8_lossy(&output.stdout);
-
-    // Normalise the two glyph substitutions produced by the broken CMap:
-    //   '>'  was mapped from '9'  (digit: 2> → 29, >6 → 96, etc.)
-    //   'j'  was mapped from '-'  (date separator: 2026j07j28 → 2026-07-28)
-    //
-    // Descriptions are already garbled by the same CMap issue and are only used for
-    // dedup hashing, so a global replacement is acceptable.
-    let normalised = raw.replace('>', "9").replace('j', "-");
-
-    parse_text(&normalised)
-}
-
-/// Parse the extracted plain text from the Klarna PDF.
-///
-/// `pdf-extract` renders each transaction as a **single line**:
-///
-///   `"2026-06-13 U Uber Klarna card 144,00 kr"`
-///
-/// The column header is similarly on one line:
-///
-///   `"DATE DESCRIPTION PAYMENT METHOD AMOUNT"`
-///
-/// Page-break noise lines look like: `"Date sent: 2026-06-15 Pg. 3/4"`
+/// Parse a Klarna Monthly invoice PDF using OCR.
 ///
 /// Strategy:
-/// 1. Find the column-header sentinel to confirm we have a valid Klarna PDF.
-/// 2. Scan every subsequent non-empty line until "Summary".
-/// 3. For each line, attempt to parse as a transaction (starts with YYYY-MM-DD).
-fn parse_text(text: &str) -> Result<Vec<ParsedRow>, String> {
-    const HEADER: &str = "DATE DESCRIPTION PAYMENT METHOD AMOUNT";
+/// 1. Write the PDF bytes to a temp file.
+/// 2. Render each page to a PNG with `pdftoppm` (poppler-utils).
+/// 3. OCR each PNG with `tesseract` (English + Swedish).
+/// 4. Concatenate the OCR text and parse transaction lines.
+///
+/// This approach is immune to broken ToUnicode CMap entries in the PDF, which
+/// cause text-extraction tools (`pdf-extract`, `pdftotext`) to produce garbled
+/// dates and amounts.
+#[cfg(feature = "server")]
+pub fn parse(pdf_bytes: &[u8]) -> Result<Vec<ParsedRow>, String> {
+    use std::io::Write as _;
 
-    // Confirm this looks like a Klarna invoice.
-    // We normalise runs of whitespace to a single space so the check works whether the text came
-    // from pdf-extract (single space) or pdftotext -layout (column-aligned, multi-space).
-    if !text.lines().any(|l| normalise_spaces(l) == HEADER) {
-        return Err("Could not find transaction table header in Klarna PDF".to_string());
+    let tmp_dir = tempfile::tempdir()
+        .map_err(|e| format!("Failed to create temp dir: {e}"))?;
+    let pdf_path = tmp_dir.path().join("klarna.pdf");
+    let page_prefix = tmp_dir.path().join("page");
+
+    std::fs::File::create(&pdf_path)
+        .and_then(|mut f| f.write_all(pdf_bytes))
+        .map_err(|e| format!("Failed to write temp PDF: {e}"))?;
+
+    // Render PDF pages to PNGs: page-1.png, page-2.png, …
+    let pdftoppm = std::process::Command::new("pdftoppm")
+        .args([
+            "-png",
+            "-r", "200",
+            pdf_path.to_str().unwrap(),
+            page_prefix.to_str().unwrap(),
+        ])
+        .output()
+        .map_err(|e| format!("pdftoppm not available: {e}"))?;
+
+    if !pdftoppm.status.success() {
+        return Err(format!(
+            "pdftoppm failed: {}",
+            String::from_utf8_lossy(&pdftoppm.stderr)
+        ));
+    }
+
+    // Collect rendered page images in order.
+    let mut pages: Vec<std::path::PathBuf> = std::fs::read_dir(tmp_dir.path())
+        .map_err(|e| format!("Failed to read temp dir: {e}"))?
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .filter(|p| p.extension().and_then(|s| s.to_str()) == Some("png"))
+        .collect();
+    pages.sort();
+
+    // OCR each page and concatenate the text.
+    let mut full_text = String::new();
+    for page in &pages {
+        // tesseract <input> stdout -l eng+swe --psm 6
+        let ocr = std::process::Command::new("tesseract")
+            .args([
+                page.to_str().unwrap(),
+                "stdout",
+                "-l", "eng+swe",
+                "--psm", "6",
+            ])
+            .output()
+            .map_err(|e| format!("tesseract not available: {e}"))?;
+
+        if !ocr.status.success() {
+            return Err(format!(
+                "tesseract failed: {}",
+                String::from_utf8_lossy(&ocr.stderr)
+            ));
+        }
+
+        full_text.push_str(&String::from_utf8_lossy(&ocr.stdout));
+        full_text.push('\n');
+    }
+
+    parse_text(&full_text)
+}
+
+/// Parse OCR'd plain text from a Klarna Monthly invoice.
+///
+/// Each transaction line looks like:
+///   `"2026-06-13 U Uber Klarna card 144,00 kr"`
+///
+/// Strategy:
+/// 1. Confirm the text is from a Klarna invoice via the language-independent sentinel.
+/// 2. Collect every line that parses as a transaction (starts with YYYY-MM-DD).
+/// 3. Stop at the summary footer ("Summary" / "Summering").
+fn parse_text(text: &str) -> Result<Vec<ParsedRow>, String> {
+    // "Klarna Bank AB" appears on the first page of every invoice regardless of language.
+    if !text.contains("Klarna Bank AB") {
+        return Err("Could not find Klarna Bank AB header in PDF".to_string());
     }
 
     let mut rows: Vec<ParsedRow> = Vec::new();
-    let mut in_table = false;
 
     for line in text.lines() {
         let line = line.trim();
@@ -106,27 +104,11 @@ fn parse_text(text: &str) -> Result<Vec<ParsedRow>, String> {
             continue;
         }
 
-        // Enter the transaction table on the column-header line.
-        if normalise_spaces(line) == HEADER {
-            in_table = true;
-            continue;
-        }
-
-        if !in_table {
-            continue;
-        }
-
-        // Stop at the summary footer.
-        if line == "Summary" {
+        // Stop at the summary footer (English or Swedish).
+        if line == "Summary" || line == "Summering" {
             break;
         }
 
-        // Skip repeated page-break noise: "Date sent: … Pg. N/M"
-        if line.starts_with("Date sent:") {
-            continue;
-        }
-
-        // Each transaction line starts with an ISO date.
         if let Some(row) = parse_transaction_line(line) {
             rows.push(row);
         }
@@ -141,39 +123,28 @@ fn parse_text(text: &str) -> Result<Vec<ParsedRow>, String> {
 ///
 /// - The icon is a single character (letter or digit) immediately after the date.
 /// - The amount ends with ` kr` and may contain spaces (Swedish thousands separator).
-/// - Payment method is one of "Klarna card" or "Pay later" (two tokens).
-///   We strip it from the right after the amount.
+/// - Payment method is one of "Klarna card", "Pay later", "Klarna kortet", "Betala senare".
 /// - Everything between the icon and the payment method is the description.
 fn parse_transaction_line(line: &str) -> Option<ParsedRow> {
-    // Must start with YYYY-MM-DD
     if line.len() < 10 {
         return None;
     }
     let date = NaiveDate::parse_from_str(&line[..10], "%Y-%m-%d").ok()?;
 
-    // Rest of line after the date and a space.
     let rest = line.get(11..)?.trim();
-
-    // Strip " kr" suffix and parse the amount (may include spaces as thousands sep).
-    // The amount itself can be e.g. "144,00" or "1 399,00" so we work from the right.
     let rest = rest.strip_suffix(" kr")?;
 
-    // Amount: last whitespace-delimited token, BUT Swedish amounts can have a
-    // space as a thousands separator ("1 399,00"). We find the amount by scanning
-    // right-to-left for the comma that marks the decimal separator.
     let amount_str = extract_amount_from_end(rest)?;
     let amount_end = rest.len() - amount_str.len();
     let before_amount = rest[..amount_end].trim_end();
 
     let raw_amount = parse_swedish_decimal(amount_str).ok()?;
 
-    // Strip payment method from right: "Klarna card" or "Pay later"
     let before_pm = strip_payment_method(before_amount)?;
     let before_pm = before_pm.trim_end();
 
-    // Strip the single-character icon from left.
     let mut chars = before_pm.chars();
-    let _icon = chars.next()?; // single icon character
+    let _icon = chars.next()?;
     let description = chars.as_str().trim().to_string();
 
     if description.is_empty() {
@@ -190,25 +161,15 @@ fn parse_transaction_line(line: &str) -> Option<ParsedRow> {
     })
 }
 
-/// Extract the numeric amount string (everything after the last space that
-/// precedes the decimal comma section) from the end of a string.
+/// Extract the numeric amount string from the right end of a field string.
 ///
-/// Swedish amounts: "144,00" or "1 399,00" or "109,11"
-/// We scan right-to-left: the decimal part is everything after the last `,`,
-/// and the integer part may include spaces.
+/// Swedish amounts: `"144,00"` or `"1 399,00"` (space as thousands separator).
 fn extract_amount_from_end(s: &str) -> Option<&str> {
-    // Find the rightmost comma — that separates integer from decimal part.
     let comma_pos = s.rfind(',')?;
-
-    // Walk left from the comma to find where the amount starts:
-    // stop at the second space (amounts like "1 399" have exactly one internal space).
     let prefix = &s[..comma_pos];
     let amount_start = if let Some(space_pos) = prefix.rfind(' ') {
-        // Check if the character before that space is a digit (thousands sep space)
-        // vs a separator between fields.
         let before_space = &prefix[..space_pos];
         if before_space.ends_with(|c: char| c.is_ascii_digit()) {
-            // Could be thousands separator — check for another space before that.
             if let Some(prev_space) = before_space.rfind(' ') {
                 prev_space + 1
             } else {
@@ -220,25 +181,16 @@ fn extract_amount_from_end(s: &str) -> Option<&str> {
     } else {
         0
     };
-
     Some(&s[amount_start..])
-}
-
-/// Collapse all runs of whitespace to a single space and trim the result.
-/// Used to match the column header regardless of whether the text came from
-/// pdf-extract (single spaces) or pdftotext -layout (wide column gaps).
-fn normalise_spaces(s: &str) -> String {
-    s.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 /// Strip a known Klarna payment method suffix from the right of a string.
 fn strip_payment_method(s: &str) -> Option<&str> {
-    for pm in ["Klarna card", "Pay later"] {
+    for pm in ["Klarna card", "Pay later", "Klarna kortet", "Betala senare"] {
         if let Some(stripped) = s.strip_suffix(pm) {
             return Some(stripped);
         }
     }
-    // Unknown payment method — not a valid transaction line.
     None
 }
 
@@ -246,11 +198,11 @@ fn strip_payment_method(s: &str) -> Option<&str> {
 mod tests {
     use super::*;
 
-    /// Representative lines matching the actual pdf-extract output format.
+    /// Representative lines matching clean OCR output (English invoice).
     const SAMPLE: &str = r#"
-Date sent: 2026-06-15
+Klarna Bank AB (publ), FE 50500
 
- Pg. 1/4
+Date sent: 2026-06-15
 
 DATE DESCRIPTION PAYMENT METHOD AMOUNT
 
@@ -261,8 +213,6 @@ DATE DESCRIPTION PAYMENT METHOD AMOUNT
 2026-06-02 S Skicka blommor med Blomsterlandet Pay later 536,00 kr
 
 2026-06-04 S Steam Klarna card 109,11 kr
-
-Date sent: 2026-06-15 Pg. 3/4
 
 2026-06-03 M Maxi ICA Stormarknad Klarna card 142,26 kr
 
@@ -299,64 +249,48 @@ Total orders (5) 2 330,37 kr
     }
 
     #[test]
-    fn test_page_break_mid_table() {
-        let text = concat!(
-            "DATE DESCRIPTION PAYMENT METHOD AMOUNT\n",
-            "2026-06-13 U Uber Klarna card 144,00 kr\n",
-            "Date sent: 2026-06-15 Pg. 3/4\n",
-            "DATE DESCRIPTION PAYMENT METHOD AMOUNT\n",
-            "2026-06-04 N Naturkompaniet Klarna card 1 399,00 kr\n",
-            "Summary\n",
-        );
-        let rows = parse_text(text).expect("parse should succeed");
-        assert_eq!(rows.len(), 2);
-        assert_eq!(rows[0].description, "Uber");
-        assert_eq!(rows[1].description, "Naturkompaniet");
-    }
-
-    #[test]
-    fn test_no_header_returns_error() {
+    fn test_no_klarna_header_returns_error() {
         let result = parse_text("some random text without the header");
         assert!(result.is_err());
     }
 
-    /// Simulate the pdftotext -layout output format: header and transaction lines have
-    /// wide column-aligned spacing.  This exercises the normalise_spaces header detection
-    /// and the multi-space-tolerant transaction parser.
     #[test]
-    fn test_pdftotext_layout_format() {
+    fn test_summary_stops_parsing() {
         let text = concat!(
-            "DATE                    DESCRIPTION                        PAYMENT METHOD     AMOUNT\n",
-            "\n",
-            "2026-07-11                 U     Uber                      Klarna card      144,00 kr\n",
-            "2026-07-04                 N     Naturkompaniet             Klarna card    1 399,00 kr\n",
+            "Klarna Bank AB (publ), FE 50500\n",
+            "2026-06-13 U Uber Klarna card 144,00 kr\n",
             "Summary\n",
+            "2026-06-14 X Fake Klarna card 999,00 kr\n",
+        );
+        let rows = parse_text(text).expect("parse should succeed");
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].description, "Uber");
+    }
+
+    #[test]
+    fn test_swedish_invoice() {
+        let text = concat!(
+            "Klarna Bank AB (publ), FE 50500\n",
+            "2026-06-08 C Coop Klarna kortet 53,14 kr\n",
+            "2026-06-14 E ETSY IRELAND Betala senare 34,39 kr\n",
+            "Summering\n",
         );
         let rows = parse_text(text).expect("parse should succeed");
         assert_eq!(rows.len(), 2);
-        assert_eq!(rows[0].description, "Uber");
-        assert_eq!(rows[0].date, NaiveDate::from_ymd_opt(2026, 7, 11));
-        assert_eq!(rows[0].amount.to_string(), "-144.00");
-        assert_eq!(rows[1].description, "Naturkompaniet");
-        assert_eq!(rows[1].amount.to_string(), "-1399.00");
+        assert_eq!(rows[0].description, "Coop");
+        assert_eq!(rows[0].amount.to_string(), "-53.14");
+        assert_eq!(rows[1].description, "ETSY IRELAND");
+        assert_eq!(rows[1].amount.to_string(), "-34.39");
     }
 
-    /// Verify that the broken-CMap substitutions (j→-, >→9) are correctly reversed so
-    /// that dates and amounts parse cleanly via the pdftotext fallback path.
     #[test]
-    fn test_glyph_substitution_normalisation() {
-        // Raw pdftotext output with substituted glyphs
-        let raw = concat!(
-            "DATE                    DESCRIPTION          PAYMENT METHOD     AMOUNT\n",
-            "2026j07j11                 U     Uber         Klarna card      144,00 kr\n",
-            "2026j07j0>                 N     Naturkomp    Klarna card    1 3>>,00 kr\n",
+    fn test_thousands_separator_in_amount() {
+        let text = concat!(
+            "Klarna Bank AB (publ), FE 50500\n",
+            "2026-05-25 L Lidl Klarna card 1 335,54 kr\n",
             "Summary\n",
         );
-        let normalised = raw.replace('>', "9").replace('j', "-");
-        let rows = parse_text(&normalised).expect("parse should succeed");
-        assert_eq!(rows.len(), 2);
-        assert_eq!(rows[0].date, NaiveDate::from_ymd_opt(2026, 7, 11));
-        assert_eq!(rows[1].date, NaiveDate::from_ymd_opt(2026, 7, 9));
-        assert_eq!(rows[1].amount.to_string(), "-1399.00");
+        let rows = parse_text(text).expect("parse should succeed");
+        assert_eq!(rows[0].amount.to_string(), "-1335.54");
     }
 }

@@ -21,6 +21,7 @@ axum = { version = "0.8", optional = true }
 serde_json = { version = "1", optional = true }
 tracing = { version = "0.1", optional = true }
 pdf-extract = { version = "0.10", optional = true }
+tempfile = { version = "3", optional = true }
 base64 = { version = "0.22", optional = true }
 encoding_rs = { version = "0.8", optional = true }
 
@@ -32,6 +33,6 @@ rust_decimal = { workspace = true }
 chrono = { workspace = true }
 
 [features]
-server = ["dioxus/server", "dep:sqlx", "dep:tokio", "dep:sha2", "dep:dotenvy", "dep:url", "dep:reqwest", "dep:axum", "dep:serde_json", "dep:tracing", "dep:pdf-extract", "dep:base64", "dep:encoding_rs"]
+server = ["dioxus/server", "dep:sqlx", "dep:tokio", "dep:sha2", "dep:dotenvy", "dep:url", "dep:reqwest", "dep:axum", "dep:serde_json", "dep:tracing", "dep:tempfile", "dep:base64", "dep:encoding_rs"]
 # Enable to run DB integration tests. Requires DATABASE_URL or TEST_DATABASE_URL.
 integration-tests = []
