@@ -9,11 +9,65 @@ use chrono::NaiveDate;
 /// - Currency is always SEK; there are no pending rows in the monthly invoice.
 ///
 /// `pdf_bytes` is the raw binary content of the PDF file.
+///
+/// Some Klarna PDFs are generated with an incomplete ToUnicode CMap (missing glyph→Unicode
+/// mappings). In that case `pdf-extract` returns garbled text and zero rows. We detect this and
+/// fall back to `pdftotext -layout` (poppler), which recovers the layout but still substitutes
+/// two characters due to the same missing CMap: `-` → `j` and `9` → `>`. We normalise those
+/// before parsing, which correctly recovers dates and amounts (descriptions stay garbled but are
+/// still useful for dedup via SHA-256).
 #[cfg(feature = "server")]
 pub fn parse(pdf_bytes: &[u8]) -> Result<Vec<ParsedRow>, String> {
     let text = pdf_extract::extract_text_from_mem(pdf_bytes)
         .map_err(|e| format!("Failed to extract text from Klarna PDF: {e}"))?;
-    parse_text(&text)
+
+    let rows = parse_text(&text);
+
+    // If pdf-extract produced unusable output (garbled font / no line breaks), fall back to
+    // pdftotext which handles layout recovery better.
+    let rows = match rows {
+        Ok(r) if !r.is_empty() => return Ok(r),
+        _ => extract_via_pdftotext(pdf_bytes)?,
+    };
+
+    Ok(rows)
+}
+
+/// Write `pdf_bytes` to a temp file, run `pdftotext -layout`, normalise the two known glyph
+/// substitutions (`j`→`-`, `>`→`9`), then parse the recovered text.
+#[cfg(feature = "server")]
+fn extract_via_pdftotext(pdf_bytes: &[u8]) -> Result<Vec<ParsedRow>, String> {
+    use std::io::Write as _;
+
+    // Write bytes to a named temp file that pdftotext can read.
+    let tmp_path = std::env::temp_dir().join("klarna_import.pdf");
+    let mut f = std::fs::File::create(&tmp_path)
+        .map_err(|e| format!("Failed to create temp file for pdftotext: {e}"))?;
+    f.write_all(pdf_bytes)
+        .map_err(|e| format!("Failed to write temp PDF: {e}"))?;
+    drop(f);
+
+    let output = std::process::Command::new("pdftotext")
+        .args(["-layout", tmp_path.to_str().unwrap_or(""), "-"])
+        .output()
+        .map_err(|e| format!("pdftotext not available: {e}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("pdftotext failed: {stderr}"));
+    }
+
+    let raw = String::from_utf8_lossy(&output.stdout);
+
+    // Normalise the two glyph substitutions produced by the broken CMap:
+    //   '>'  was mapped from '9'  (digit: 2> → 29, >6 → 96, etc.)
+    //   'j'  was mapped from '-'  (date separator: 2026j07j28 → 2026-07-28)
+    //
+    // Descriptions are already garbled by the same CMap issue and are only used for
+    // dedup hashing, so a global replacement is acceptable.
+    let normalised = raw.replace('>', "9").replace('j', "-");
+
+    parse_text(&normalised)
 }
 
 /// Parse the extracted plain text from the Klarna PDF.
@@ -36,7 +90,9 @@ fn parse_text(text: &str) -> Result<Vec<ParsedRow>, String> {
     const HEADER: &str = "DATE DESCRIPTION PAYMENT METHOD AMOUNT";
 
     // Confirm this looks like a Klarna invoice.
-    if !text.contains(HEADER) {
+    // We normalise runs of whitespace to a single space so the check works whether the text came
+    // from pdf-extract (single space) or pdftotext -layout (column-aligned, multi-space).
+    if !text.lines().any(|l| normalise_spaces(l) == HEADER) {
         return Err("Could not find transaction table header in Klarna PDF".to_string());
     }
 
@@ -51,7 +107,7 @@ fn parse_text(text: &str) -> Result<Vec<ParsedRow>, String> {
         }
 
         // Enter the transaction table on the column-header line.
-        if line == HEADER {
+        if normalise_spaces(line) == HEADER {
             in_table = true;
             continue;
         }
@@ -168,6 +224,13 @@ fn extract_amount_from_end(s: &str) -> Option<&str> {
     Some(&s[amount_start..])
 }
 
+/// Collapse all runs of whitespace to a single space and trim the result.
+/// Used to match the column header regardless of whether the text came from
+/// pdf-extract (single spaces) or pdftotext -layout (wide column gaps).
+fn normalise_spaces(s: &str) -> String {
+    s.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
 /// Strip a known Klarna payment method suffix from the right of a string.
 fn strip_payment_method(s: &str) -> Option<&str> {
     for pm in ["Klarna card", "Pay later"] {
@@ -255,5 +318,45 @@ Total orders (5) 2 330,37 kr
     fn test_no_header_returns_error() {
         let result = parse_text("some random text without the header");
         assert!(result.is_err());
+    }
+
+    /// Simulate the pdftotext -layout output format: header and transaction lines have
+    /// wide column-aligned spacing.  This exercises the normalise_spaces header detection
+    /// and the multi-space-tolerant transaction parser.
+    #[test]
+    fn test_pdftotext_layout_format() {
+        let text = concat!(
+            "DATE                    DESCRIPTION                        PAYMENT METHOD     AMOUNT\n",
+            "\n",
+            "2026-07-11                 U     Uber                      Klarna card      144,00 kr\n",
+            "2026-07-04                 N     Naturkompaniet             Klarna card    1 399,00 kr\n",
+            "Summary\n",
+        );
+        let rows = parse_text(text).expect("parse should succeed");
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0].description, "Uber");
+        assert_eq!(rows[0].date, NaiveDate::from_ymd_opt(2026, 7, 11));
+        assert_eq!(rows[0].amount.to_string(), "-144.00");
+        assert_eq!(rows[1].description, "Naturkompaniet");
+        assert_eq!(rows[1].amount.to_string(), "-1399.00");
+    }
+
+    /// Verify that the broken-CMap substitutions (j→-, >→9) are correctly reversed so
+    /// that dates and amounts parse cleanly via the pdftotext fallback path.
+    #[test]
+    fn test_glyph_substitution_normalisation() {
+        // Raw pdftotext output with substituted glyphs
+        let raw = concat!(
+            "DATE                    DESCRIPTION          PAYMENT METHOD     AMOUNT\n",
+            "2026j07j11                 U     Uber         Klarna card      144,00 kr\n",
+            "2026j07j0>                 N     Naturkomp    Klarna card    1 3>>,00 kr\n",
+            "Summary\n",
+        );
+        let normalised = raw.replace('>', "9").replace('j', "-");
+        let rows = parse_text(&normalised).expect("parse should succeed");
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0].date, NaiveDate::from_ymd_opt(2026, 7, 11));
+        assert_eq!(rows[1].date, NaiveDate::from_ymd_opt(2026, 7, 9));
+        assert_eq!(rows[1].amount.to_string(), "-1399.00");
     }
 }
