@@ -146,6 +146,9 @@ pub struct QueueState {
     pub upcoming: Vec<Transaction>,
     /// Total number of unclassified, non-pending transactions (including `next`).
     pub remaining: i64,
+    /// The category most often assigned to previously classified transactions
+    /// with the same description as `next`; `None` when no history exists.
+    pub suggested_category: Option<Category>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

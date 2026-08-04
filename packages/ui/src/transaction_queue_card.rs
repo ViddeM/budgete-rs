@@ -8,10 +8,14 @@ use crate::format::{contrast_text, fmt_tx_amount, hover_filter};
 /// Only subcategories (those with `parent_id.is_some()`) are shown as
 /// selectable buttons; top-level categories appear as non-clickable group
 /// headers. Parents that have no subcategories are omitted.
+///
+/// When `suggested_category` is provided (a subcategory), it is shown as a
+/// prominent quick-action button above the regular picker.
 #[component]
 pub fn TransactionQueueCard(
     transaction: Transaction,
     categories: Vec<Category>,
+    suggested_category: Option<Category>,
     on_classify: EventHandler<(Transaction, Category)>,
 ) -> Element {
     let amount = transaction.amount;
@@ -27,6 +31,10 @@ pub fn TransactionQueueCard(
         .map(|d| d.format("%Y-%m-%d").to_string())
         .unwrap_or_else(|| "Pending".to_string());
 
+    // A suggestion only makes sense when it points at an assignable
+    // subcategory; top-level categories are just headers in this card.
+    let suggestion = suggested_category.filter(|c| c.parent_id.is_some());
+
     // Separate into top-level and subcategories.
     let parents: Vec<&Category> = categories
         .iter()
@@ -41,6 +49,24 @@ pub fn TransactionQueueCard(
             p { class: "queue-card__meta", "{date_str} · {transaction.source}" }
             p { class: "queue-card__desc", "{transaction.description}" }
             p { class: "queue-card__amount", style: "color: {amount_color};", "{amount_str}" }
+
+            p { class: "queue-card__pick-label", "Suggested" }
+            div {
+                class: "queue-card__suggested",
+                match suggestion {
+                    Some(cat) => rsx! {
+                        CategoryButton {
+                            key: "{cat.id}",
+                            category: cat,
+                            transaction: transaction.clone(),
+                            on_classify,
+                        }
+                    },
+                    None => rsx! {
+                        p { class: "queue-card__no-suggestion", "No suggestion — first time seeing this description." }
+                    },
+                }
+            }
 
             if !has_any_subcats {
                 p { class: "queue-card__no-cats", "Add subcategories to begin classifying." }
