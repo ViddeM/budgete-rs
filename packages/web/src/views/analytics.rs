@@ -4,46 +4,23 @@ use api::{
 };
 use chrono::{Datelike, Local, NaiveDate};
 use dioxus::prelude::*;
-use rust_decimal::prelude::ToPrimitive;
+use rust_decimal::{prelude::ToPrimitive, Decimal};
 use std::collections::HashSet;
-use ui::{fmt_amount, TransactionList};
+use ui::{fmt_amount, tx_amount_color, TransactionList};
 use uuid::Uuid;
 
 use super::helpers::build_groups;
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Helper: CSS class for a net value (positive = green, negative = red)
 // ---------------------------------------------------------------------------
 
-const MONTHS: [&str; 12] = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-];
-
-fn first_day(year: i32, month: u32) -> NaiveDate {
-    NaiveDate::from_ymd_opt(year, month, 1).unwrap()
-}
-
-fn last_day(year: i32, month: u32) -> NaiveDate {
-    let (y, m) = if month == 12 {
-        (year + 1, 1)
+fn net_class(value: Decimal) -> &'static str {
+    if value >= Decimal::ZERO {
+        "time-table__net time-table__net--pos"
     } else {
-        (year, month + 1)
-    };
-    NaiveDate::from_ymd_opt(y, m, 1)
-        .unwrap()
-        .pred_opt()
-        .unwrap()
+        "time-table__net time-table__net--neg"
+    }
 }
 
 #[derive(Clone, PartialEq)]
@@ -81,13 +58,23 @@ pub fn Analytics() -> Element {
 
     // Derive resolved NaiveDate range from whichever mode is active
     let date_from = use_memo(move || match filter_mode() {
-        FilterMode::Month => first_day(sel_year(), sel_month()),
+        FilterMode::Month => NaiveDate::from_ymd_opt(sel_year(), sel_month(), 1).unwrap(),
         FilterMode::Custom => {
             NaiveDate::parse_from_str(&custom_from(), "%Y-%m-%d").unwrap_or(default_from)
         }
     });
     let date_to = use_memo(move || match filter_mode() {
-        FilterMode::Month => last_day(sel_year(), sel_month()),
+        FilterMode::Month => {
+            let (y, m) = if sel_month() == 12 {
+                (sel_year() + 1, 1)
+            } else {
+                (sel_year(), sel_month() + 1)
+            };
+            NaiveDate::from_ymd_opt(y, m, 1)
+                .unwrap()
+                .pred_opt()
+                .unwrap()
+        }
         FilterMode::Custom => NaiveDate::parse_from_str(&custom_to(), "%Y-%m-%d").unwrap_or(today),
     });
 
@@ -124,37 +111,18 @@ pub fn Analytics() -> Element {
     // Totals summed across all returned rows (used by summary cards)
     let (total_expenses, total_income) = match over_time_res() {
         Some(Ok(ref rows)) => {
-            let exp: rust_decimal::Decimal = rows.iter().map(|r| r.expenses).sum();
-            let inc: rust_decimal::Decimal = rows.iter().map(|r| r.income).sum();
+            let exp: Decimal = rows.iter().map(|r| r.expenses).sum();
+            let inc: Decimal = rows.iter().map(|r| r.income).sum();
             (exp, inc)
         }
-        _ => (rust_decimal::Decimal::ZERO, rust_decimal::Decimal::ZERO),
+        _ => (Decimal::ZERO, Decimal::ZERO),
     };
     let net = total_income - total_expenses;
 
-    // Is the result a single calendar-month bucket? Used to choose section title/content.
-    let is_single_month = match over_time_res() {
-        Some(Ok(ref rows)) => rows.len() == 1,
-        _ => matches!(filter_mode(), FilterMode::Month),
-    };
-
-    // Section heading for the overview table
-    let overview_title: String = if is_single_month {
-        match filter_mode() {
-            FilterMode::Month => {
-                format!(
-                    "{} {}",
-                    MONTHS[(sel_month() as usize).saturating_sub(1)],
-                    sel_year()
-                )
-            }
-            FilterMode::Custom => {
-                // Custom range that happens to span one month
-                format!("{} — {}", date_from(), date_to())
-            }
-        }
-    } else {
-        format!("{} — {}", date_from(), date_to())
+    // Human-readable label for the selected range
+    let range_label: String = match filter_mode() {
+        FilterMode::Month => format!("{} {}", date_from().format("%B"), sel_year()),
+        FilterMode::Custom => format!("{} — {}", date_from(), date_to()),
     };
 
     rsx! {
@@ -201,11 +169,16 @@ pub fn Analytics() -> Element {
                                         sel_month.set(v);
                                     }
                                 },
-                                for (i, name) in MONTHS.iter().enumerate() {
+                                for m in 1u32..=12 {
                                     option {
-                                        value: "{i + 1}",
-                                        selected: sel_month() == (i as u32 + 1),
-                                        "{name}"
+                                        value: "{m}",
+                                        selected: sel_month() == m,
+                                        // Format any date with this month number to get the name
+                                        {
+                                            NaiveDate::from_ymd_opt(2000, m, 1)
+                                                .map(|d| d.format("%B").to_string())
+                                                .unwrap_or_default()
+                                        }
                                     }
                                 }
                             }
@@ -283,19 +256,16 @@ pub fn Analytics() -> Element {
                     span { class: "summary-card__value", "{fmt_amount(total_income)}" }
                 }
                 div {
-                    class: if net >= rust_decimal::Decimal::ZERO {
-                        "summary-card summary-card--net summary-card--positive"
-                    } else {
-                        "summary-card summary-card--net summary-card--negative"
-                    },
+                    class: "summary-card summary-card--net",
+                    style: "color: {tx_amount_color(net)};",
                     span { class: "summary-card__label", "Net" }
                     span { class: "summary-card__value", "{fmt_amount(net)}" }
                 }
             }
 
             // --- Overview section ---
-            // Single month: show one summary row (no redundant table, totals are
-            // already in the cards above). Multi-month: show month-by-month table.
+            // Single month: totals already shown in summary cards; just show a label.
+            // Multi-month: show month-by-month breakdown table.
             match over_time_res() {
                 None => rsx! { p { "Loading…" } },
                 Some(Err(e)) => rsx! { p { class: "text-error", "Error: {e}" } },
@@ -304,13 +274,9 @@ pub fn Analytics() -> Element {
                         "No data for selected range."
                     }
                 },
-                Some(Ok(rows)) if rows.len() == 1 => {
-                    // Single-month: just show a compact stat row under the cards
-                    // so the page doesn't feel empty, but avoid duplicating the numbers.
-                    rsx! {
-                        p { class: "analytics-range-label", "Showing: {overview_title}" }
-                    }
-                }
+                Some(Ok(rows)) if rows.len() == 1 => rsx! {
+                    p { class: "analytics-range-label", "Showing: {range_label}" }
+                },
                 Some(Ok(rows)) => rsx! {
                     h2 { class: "view__section-title", "Monthly breakdown" }
                     div {
@@ -325,11 +291,6 @@ pub fn Analytics() -> Element {
                         for row in rows.iter() {
                             {
                                 let row_net = row.income - row.expenses;
-                                let net_class = if row_net >= rust_decimal::Decimal::ZERO {
-                                    "time-table__net time-table__net--pos"
-                                } else {
-                                    "time-table__net time-table__net--neg"
-                                };
                                 rsx! {
                                     div {
                                         key: "{row.period_label}",
@@ -337,7 +298,7 @@ pub fn Analytics() -> Element {
                                         span { class: "time-table__period", "{row.period_label}" }
                                         span { class: "time-table__expense", "{fmt_amount(row.expenses)}" }
                                         span { class: "time-table__income",  "{fmt_amount(row.income)}" }
-                                        span { class: "{net_class}", "{fmt_amount(row_net)}" }
+                                        span { class: "{net_class(row_net)}", "{fmt_amount(row_net)}" }
                                     }
                                 }
                             }
@@ -347,14 +308,7 @@ pub fn Analytics() -> Element {
                             span { class: "time-table__period", "Total" }
                             span { class: "time-table__expense", "{fmt_amount(total_expenses)}" }
                             span { class: "time-table__income", "{fmt_amount(total_income)}" }
-                            span {
-                                class: if net >= rust_decimal::Decimal::ZERO {
-                                    "time-table__net time-table__net--pos"
-                                } else {
-                                    "time-table__net time-table__net--neg"
-                                },
-                                "{fmt_amount(net)}"
-                            }
+                            span { class: "{net_class(net)}", "{fmt_amount(net)}" }
                         }
                     }
                 },
