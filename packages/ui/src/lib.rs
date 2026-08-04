@@ -30,4 +30,4 @@ pub use project_transaction_row::ProjectTransactionRow;
 pub use stat_card::StatCard;
 pub use transaction_list::TransactionList;
 pub use transaction_queue_card::TransactionQueueCard;
-pub use transaction_row::{ClassifyAction, TransactionRow};
+pub use transaction_row::{ClassifyAction, TransactionRow, TxMenuAction};

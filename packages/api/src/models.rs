@@ -76,6 +76,18 @@ pub struct TransactionFilter {
     pub date_to: Option<NaiveDate>,
 }
 
+/// Request to update the mutable fields of an existing transaction.
+/// All fields are optional — only `Some` values are applied.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct UpdateTransactionRequest {
+    pub id: Uuid,
+    pub date: Option<NaiveDate>,
+    pub description: Option<String>,
+    pub amount: Option<Decimal>,
+    pub currency: Option<String>,
+    pub source: Option<String>,
+}
+
 /// Request to create one transaction manually from the upload page.
 /// No `category_id` is provided — these transactions always enter the
 /// unprocessed queue so they can be classified the same way as CSV imports.

@@ -485,6 +485,131 @@ pub async fn get_transactions(
     Ok(rows.into_iter().map(Into::into).collect())
 }
 
+/// Update the mutable fields of a transaction that belongs to the current household.
+/// Only the fields provided as `Some` are changed; others are left as-is.
+#[server]
+pub async fn update_transaction(
+    req: crate::models::UpdateTransactionRequest,
+) -> Result<crate::models::Transaction, ServerFnError> {
+    let household_id = current_household_id().await?;
+    let db = pool();
+
+    // Fetch the current row so we can apply partial updates.
+    let current: TransactionRow = sqlx::query_as(
+        r#"
+        SELECT
+            t.id,
+            t.date,
+            t.description,
+            t.amount,
+            t.source,
+            t.currency,
+            t.is_pending,
+            t.category_id,
+            c.name     AS category_name,
+            c.color    AS category_color,
+            c.parent_id AS category_parent_id,
+            c.ignored  AS category_ignored
+        FROM transactions t
+        LEFT JOIN categories c ON c.id = t.category_id
+        WHERE t.id = $1 AND t.household_id = $2
+        "#,
+    )
+    .bind(req.id)
+    .bind(household_id)
+    .fetch_one(db)
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    let new_date = req.date.or(current.date);
+    let new_description = req
+        .description
+        .map(|d| d.trim().to_string())
+        .unwrap_or(current.description.clone());
+    let new_amount = req.amount.unwrap_or(current.amount);
+    let new_currency = req
+        .currency
+        .map(|c| c.trim().to_ascii_uppercase())
+        .unwrap_or(current.currency.clone());
+    let new_source = req
+        .source
+        .map(|s| s.trim().to_string())
+        .unwrap_or(current.source.clone());
+
+    if new_description.is_empty() {
+        return Err(ServerFnError::new("Description cannot be empty"));
+    }
+
+    let new_is_pending = new_date.is_none();
+    let new_dedup_hash =
+        compute_dedup_hash(&new_source, new_date, &new_description, new_amount);
+
+    let updated: TransactionRow = sqlx::query_as(
+        r#"
+        UPDATE transactions
+        SET date        = $1,
+            description = $2,
+            amount      = $3,
+            currency    = $4,
+            source      = $5,
+            is_pending  = $6,
+            dedup_hash  = $7
+        WHERE id = $8 AND household_id = $9
+        RETURNING
+            id,
+            date,
+            description,
+            amount,
+            source,
+            currency,
+            is_pending,
+            category_id,
+            NULL::text AS category_name,
+            NULL::text AS category_color,
+            NULL::uuid AS category_parent_id,
+            NULL::bool AS category_ignored
+        "#,
+    )
+    .bind(new_date)
+    .bind(&new_description)
+    .bind(new_amount)
+    .bind(&new_currency)
+    .bind(&new_source)
+    .bind(new_is_pending)
+    .bind(&new_dedup_hash)
+    .bind(req.id)
+    .bind(household_id)
+    .fetch_one(db)
+    .await
+    .map_err(|e| {
+        if e.to_string().contains("duplicate") || e.to_string().contains("unique") {
+            ServerFnError::new("A transaction with identical fields already exists")
+        } else {
+            ServerFnError::new(e.to_string())
+        }
+    })?;
+
+    Ok(updated.into())
+}
+
+/// Delete a transaction that belongs to the current household.
+#[server]
+pub async fn delete_transaction(id: uuid::Uuid) -> Result<(), ServerFnError> {
+    let household_id = current_household_id().await?;
+    let db = pool();
+
+    sqlx::query(
+        "DELETE FROM transactions WHERE id = $1 AND household_id = $2",
+    )
+    .bind(id)
+    .bind(household_id)
+    .execute(db)
+    .await
+    .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    Ok(())
+}
+
 /// Return the next unclassified (non-pending) transaction for the current household
 /// and the total remaining count. The queue is ordered oldest-first.
 #[server]
