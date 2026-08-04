@@ -462,6 +462,7 @@ pub async fn get_transactions(
             ))
             AND ($5::date IS NULL OR t.date >= $5)
             AND ($6::date IS NULL OR t.date <= $6)
+            AND ($7::boolean = false OR COALESCE(c.ignored, false) = false)
         ORDER BY t.date DESC NULLS LAST, t.created_at DESC
         "#,
     )
@@ -471,6 +472,7 @@ pub async fn get_transactions(
     .bind(filter.group_id)
     .bind(filter.date_from)
     .bind(filter.date_to)
+    .bind(filter.exclude_ignored)
     .fetch_all(db)
     .await
     .map_err(|e| ServerFnError::new(e.to_string()))?;

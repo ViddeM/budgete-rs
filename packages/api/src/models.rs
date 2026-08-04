@@ -74,6 +74,8 @@ pub struct TransactionFilter {
     pub group_id: Option<Uuid>,
     pub date_from: Option<NaiveDate>,
     pub date_to: Option<NaiveDate>,
+    /// When `true`, transactions belonging to ignored categories are excluded.
+    pub exclude_ignored: bool,
 }
 
 /// Request to update the mutable fields of an existing transaction.
