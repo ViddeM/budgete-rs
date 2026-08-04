@@ -15,7 +15,7 @@ enum ManualTab {
 pub fn Upload() -> Element {
     let mut source = use_signal(|| ImportSource::Amex);
     // Content of the file the user has selected but not yet uploaded.
-    // For CSV sources this is the raw UTF-8 text; for Klarna it is base64-encoded PDF bytes.
+    // For CSV sources this is the raw UTF-8 text; for Swedbank it is base64-encoded bytes.
     let mut pending_content: Signal<Option<String>> = use_signal(|| None);
     // Preview counts returned by `preview_csv` (before the real import).
     let mut preview: Signal<Option<ImportResult>> = use_signal(|| None);
@@ -35,7 +35,6 @@ pub fn Upload() -> Element {
         error.set(None);
         let new_source = match evt.value().as_str() {
             "nordea" => ImportSource::Nordea,
-            "klarna" => ImportSource::Klarna,
             "ica" => ImportSource::Ica,
             "swedbank" => ImportSource::Swedbank,
             _ => ImportSource::Amex,
@@ -72,9 +71,9 @@ pub fn Upload() -> Element {
             None => return,
         };
 
-        // Klarna PDFs and Swedbank CSVs are binary — read as bytes and base64-encode for transport.
+        // Swedbank CSVs are binary — read as bytes and base64-encode for transport.
         // All other sources are UTF-8 CSV text — read directly as a string.
-        let needs_binary = source() == ImportSource::Klarna || source() == ImportSource::Swedbank;
+        let needs_binary = source() == ImportSource::Swedbank;
         let content = if needs_binary {
             match file.read_bytes().await {
                 Ok(bytes) => base64::engine::general_purpose::STANDARD.encode(&bytes),
@@ -150,12 +149,7 @@ pub fn Upload() -> Element {
         loading.set(false);
     };
 
-    // File input accept attribute depends on the selected source.
-    let file_accept = if source() == ImportSource::Klarna {
-        "application/pdf,.pdf"
-    } else {
-        ".csv,text/csv"
-    };
+    let file_accept = ".csv,text/csv";
 
     rsx! {
         div {
@@ -173,7 +167,6 @@ pub fn Upload() -> Element {
                         onchange: on_source_change,
                         option { value: "amex",     "American Express (Amex)" }
                         option { value: "nordea",   "Nordea" }
-                        option { value: "klarna",   "Klarna (Monthly invoice PDF)" }
                         option { value: "ica",      "ICA Bank" }
                         option { value: "swedbank", "Swedbank" }
                     }
@@ -192,8 +185,6 @@ pub fn Upload() -> Element {
                     p { class: "field-hint",
                         if preview().is_some() {
                             "File ready — review the preview below and click Upload."
-                        } else if source() == ImportSource::Klarna {
-                            "Select the Klarna Monthly invoice PDF to preview what will be imported."
                         } else {
                             "Select a CSV file to preview what will be imported."
                         }

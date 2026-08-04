@@ -14,7 +14,6 @@ pub struct ParsedRow {
 
 pub mod amex;
 pub mod ica;
-pub mod klarna;
 pub mod nordea;
 pub mod swedbank;
 

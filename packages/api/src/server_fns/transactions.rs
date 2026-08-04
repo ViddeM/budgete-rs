@@ -154,9 +154,8 @@ mod tests {
     }
 }
 
-///
 /// - CSV sources: `content` is raw UTF-8 text.
-/// - Klarna: `content` is the PDF bytes encoded as standard base64.
+/// - Swedbank: `content` is the file bytes encoded as standard base64.
 #[cfg(feature = "server")]
 fn parse_content(
     source: &ImportSource,
@@ -166,12 +165,6 @@ fn parse_content(
         ImportSource::Amex => csv::amex::parse(content),
         ImportSource::Nordea => csv::nordea::parse(content),
         ImportSource::Ica => csv::ica::parse(content),
-        ImportSource::Klarna => {
-            let pdf_bytes = base64::engine::general_purpose::STANDARD
-                .decode(content)
-                .map_err(|e| format!("Invalid base64 for Klarna PDF: {e}"))?;
-            csv::klarna::parse(&pdf_bytes)
-        }
         ImportSource::Swedbank => {
             let bytes = base64::engine::general_purpose::STANDARD
                 .decode(content)
@@ -184,8 +177,8 @@ fn parse_content(
 /// Preview what would be imported without modifying the database.
 /// Returns counts of new / duplicate / pending rows.
 ///
-/// For CSV sources (`Amex`, `Nordea`) `content` is the raw UTF-8 file text.
-/// For `Klarna` `content` is the PDF file bytes encoded as standard base64.
+/// For CSV sources (`Amex`, `Nordea`, `Ica`) `content` is the raw UTF-8 file text.
+/// For `Swedbank` `content` is the file bytes encoded as standard base64.
 #[server]
 pub async fn preview_csv(
     source: ImportSource,
@@ -237,8 +230,8 @@ pub async fn preview_csv(
 
 /// Import a file for the current household. Returns counts of imported / skipped / pending rows.
 ///
-/// For CSV sources (`Amex`, `Nordea`) `content` is the raw UTF-8 file text.
-/// For `Klarna` `content` is the PDF file bytes encoded as standard base64.
+/// For CSV sources (`Amex`, `Nordea`, `Ica`) `content` is the raw UTF-8 file text.
+/// For `Swedbank` `content` is the file bytes encoded as standard base64.
 #[server]
 pub async fn import_csv(
     source: ImportSource,
