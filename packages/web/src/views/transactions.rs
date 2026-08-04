@@ -1,6 +1,7 @@
 use api::models::{Category, Transaction, TransactionFilter, UpdateTransactionRequest};
-use api::{classify_transaction, delete_transaction, get_transactions, list_categories,
-          update_transaction};
+use api::{
+    classify_transaction, delete_transaction, get_transactions, list_categories, update_transaction,
+};
 use dioxus::prelude::*;
 use ui::{ClassifyAction, TransactionList, TxMenuAction};
 use uuid::Uuid;

@@ -541,8 +541,7 @@ pub async fn update_transaction(
     }
 
     let new_is_pending = new_date.is_none();
-    let new_dedup_hash =
-        compute_dedup_hash(&new_source, new_date, &new_description, new_amount);
+    let new_dedup_hash = compute_dedup_hash(&new_source, new_date, &new_description, new_amount);
 
     let updated: TransactionRow = sqlx::query_as(
         r#"
@@ -598,14 +597,12 @@ pub async fn delete_transaction(id: uuid::Uuid) -> Result<(), ServerFnError> {
     let household_id = current_household_id().await?;
     let db = pool();
 
-    sqlx::query(
-        "DELETE FROM transactions WHERE id = $1 AND household_id = $2",
-    )
-    .bind(id)
-    .bind(household_id)
-    .execute(db)
-    .await
-    .map_err(|e| ServerFnError::new(e.to_string()))?;
+    sqlx::query("DELETE FROM transactions WHERE id = $1 AND household_id = $2")
+        .bind(id)
+        .bind(household_id)
+        .execute(db)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
 
     Ok(())
 }

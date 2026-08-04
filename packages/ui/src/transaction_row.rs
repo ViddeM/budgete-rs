@@ -35,10 +35,7 @@ struct EditForm {
 impl EditForm {
     fn from_tx(tx: &Transaction) -> Self {
         Self {
-            date: tx
-                .date
-                .map(|d| d.to_string())
-                .unwrap_or_default(),
+            date: tx.date.map(|d| d.to_string()).unwrap_or_default(),
             description: tx.description.clone(),
             amount: tx.amount.to_string(),
             currency: tx.currency.clone(),
