@@ -12,6 +12,47 @@ use uuid::Uuid;
 use super::helpers::build_groups;
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const MONTHS: [&str; 12] = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+];
+
+fn first_day(year: i32, month: u32) -> NaiveDate {
+    NaiveDate::from_ymd_opt(year, month, 1).unwrap()
+}
+
+fn last_day(year: i32, month: u32) -> NaiveDate {
+    let (y, m) = if month == 12 {
+        (year + 1, 1)
+    } else {
+        (year, month + 1)
+    };
+    NaiveDate::from_ymd_opt(y, m, 1)
+        .unwrap()
+        .pred_opt()
+        .unwrap()
+}
+
+#[derive(Clone, PartialEq)]
+enum FilterMode {
+    Month,
+    Custom,
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -20,8 +61,17 @@ pub fn Analytics() -> Element {
     let today = Local::now().date_naive();
     let default_from = NaiveDate::from_ymd_opt(today.year(), today.month(), 1).unwrap();
 
-    let mut date_from = use_signal(|| default_from.to_string());
-    let mut date_to = use_signal(|| today.to_string());
+    // Filter mode — Month or Custom range
+    let mut filter_mode = use_signal(|| FilterMode::Month);
+
+    // Month mode state
+    let mut sel_month = use_signal(|| today.month());
+    let mut sel_year = use_signal(|| today.year());
+
+    // Custom range state
+    let mut custom_from = use_signal(|| default_from.to_string());
+    let mut custom_to = use_signal(|| today.to_string());
+
     let mut selected_group: Signal<Option<Uuid>> = use_signal(|| None);
     let mut show_transactions = use_signal(|| false);
     let mut expanded_cats: Signal<HashSet<Uuid>> = use_signal(HashSet::new);
@@ -29,92 +79,240 @@ pub fn Analytics() -> Element {
     let groups_res = use_resource(list_groups);
     let groups: Vec<Group> = groups_res().and_then(|r| r.ok()).unwrap_or_default();
 
-    // Parse dates from signals
-    let parsed_from = use_memo(move || NaiveDate::parse_from_str(&date_from(), "%Y-%m-%d").ok());
-    let parsed_to = use_memo(move || NaiveDate::parse_from_str(&date_to(), "%Y-%m-%d").ok());
+    // Derive resolved NaiveDate range from whichever mode is active
+    let date_from = use_memo(move || match filter_mode() {
+        FilterMode::Month => first_day(sel_year(), sel_month()),
+        FilterMode::Custom => {
+            NaiveDate::parse_from_str(&custom_from(), "%Y-%m-%d").unwrap_or(default_from)
+        }
+    });
+    let date_to = use_memo(move || match filter_mode() {
+        FilterMode::Month => last_day(sel_year(), sel_month()),
+        FilterMode::Custom => NaiveDate::parse_from_str(&custom_to(), "%Y-%m-%d").unwrap_or(today),
+    });
 
     let category_spend_res = use_resource(move || {
-        let from = parsed_from().unwrap_or(default_from);
-        let to = parsed_to().unwrap_or(today);
+        let from = date_from();
+        let to = date_to();
         let gid = selected_group();
         async move { get_spending_by_category(from, to, gid).await }
     });
 
     let over_time_res = use_resource(move || {
-        let from = parsed_from().unwrap_or(default_from);
-        let to = parsed_to().unwrap_or(today);
+        let from = date_from();
+        let to = date_to();
         let gid = selected_group();
         async move { get_spending_over_time(from, to, gid).await }
     });
 
     let transactions_res = use_resource(move || {
-        let from = parsed_from();
-        let to = parsed_to();
+        let from = date_from();
+        let to = date_to();
         let gid = selected_group();
         async move {
             get_transactions(TransactionFilter {
-                date_from: from,
-                date_to: to,
+                date_from: Some(from),
+                date_to: Some(to),
                 group_id: gid,
+                exclude_ignored: true,
                 ..Default::default()
             })
             .await
         }
     });
 
+    // Totals summed across all returned rows (used by summary cards)
+    let (total_expenses, total_income) = match over_time_res() {
+        Some(Ok(ref rows)) => {
+            let exp: rust_decimal::Decimal = rows.iter().map(|r| r.expenses).sum();
+            let inc: rust_decimal::Decimal = rows.iter().map(|r| r.income).sum();
+            (exp, inc)
+        }
+        _ => (rust_decimal::Decimal::ZERO, rust_decimal::Decimal::ZERO),
+    };
+    let net = total_income - total_expenses;
+
+    // Is the result a single calendar-month bucket? Used to choose section title/content.
+    let is_single_month = match over_time_res() {
+        Some(Ok(ref rows)) => rows.len() == 1,
+        _ => matches!(filter_mode(), FilterMode::Month),
+    };
+
+    // Section heading for the overview table
+    let overview_title: String = if is_single_month {
+        match filter_mode() {
+            FilterMode::Month => {
+                format!(
+                    "{} {}",
+                    MONTHS[(sel_month() as usize).saturating_sub(1)],
+                    sel_year()
+                )
+            }
+            FilterMode::Custom => {
+                // Custom range that happens to span one month
+                format!("{} — {}", date_from(), date_to())
+            }
+        }
+    } else {
+        format!("{} — {}", date_from(), date_to())
+    };
+
     rsx! {
         div {
             class: "view",
             h1 { class: "view__title", "Analytics" }
 
-            // --- Filters ---
-            div {
-                class: "analytics-filters",
+            // --- Filter mode toggle + fields ---
+            div { class: "analytics-filter-block",
 
-                div {
-                    label { class: "filter-label", "From" }
-                    input {
-                        r#type: "date",
-                        value: date_from(),
-                        oninput: move |e| date_from.set(e.value()),
-                        class: "input-std",
+                // Mode toggle pills
+                div { class: "analytics-mode-toggle",
+                    button {
+                        class: if matches!(filter_mode(), FilterMode::Month) {
+                            "mode-pill mode-pill--active"
+                        } else {
+                            "mode-pill"
+                        },
+                        onclick: move |_| filter_mode.set(FilterMode::Month),
+                        "Month"
+                    }
+                    button {
+                        class: if matches!(filter_mode(), FilterMode::Custom) {
+                            "mode-pill mode-pill--active"
+                        } else {
+                            "mode-pill"
+                        },
+                        onclick: move |_| filter_mode.set(FilterMode::Custom),
+                        "Custom range"
                     }
                 }
-                div {
-                    label { class: "filter-label", "To" }
-                    input {
-                        r#type: "date",
-                        value: date_to(),
-                        oninput: move |e| date_to.set(e.value()),
-                        class: "input-std",
+
+                div { class: "analytics-filters",
+
+                    // Month mode fields
+                    if matches!(filter_mode(), FilterMode::Month) {
+                        div { class: "form-field",
+                            label { class: "filter-label", "Month" }
+                            select {
+                                class: "input-std",
+                                value: "{sel_month()}",
+                                onchange: move |e: Event<FormData>| {
+                                    if let Ok(v) = e.value().parse::<u32>() {
+                                        sel_month.set(v);
+                                    }
+                                },
+                                for (i, name) in MONTHS.iter().enumerate() {
+                                    option {
+                                        value: "{i + 1}",
+                                        selected: sel_month() == (i as u32 + 1),
+                                        "{name}"
+                                    }
+                                }
+                            }
+                        }
+                        div { class: "form-field",
+                            label { class: "filter-label", "Year" }
+                            select {
+                                class: "input-std",
+                                value: "{sel_year()}",
+                                onchange: move |e: Event<FormData>| {
+                                    if let Ok(v) = e.value().parse::<i32>() {
+                                        sel_year.set(v);
+                                    }
+                                },
+                                for y in (today.year() - 5)..=(today.year()) {
+                                    option {
+                                        value: "{y}",
+                                        selected: sel_year() == y,
+                                        "{y}"
+                                    }
+                                }
+                            }
+                        }
                     }
-                }
-                if !groups.is_empty() {
-                    div {
-                        label { class: "filter-label", "Project" }
-                        select {
-                            class: "input-std",
-                            onchange: move |e: Event<FormData>| {
-                                selected_group.set(Uuid::parse_str(&e.value()).ok());
-                            },
-                            option { value: "", "All projects" }
-                            for g in groups.iter() {
-                                option { value: "{g.id}", "{g.name}" }
+
+                    // Custom range fields
+                    if matches!(filter_mode(), FilterMode::Custom) {
+                        div { class: "form-field",
+                            label { class: "filter-label", "From" }
+                            input {
+                                r#type: "date",
+                                class: "input-std",
+                                value: custom_from(),
+                                oninput: move |e| custom_from.set(e.value()),
+                            }
+                        }
+                        div { class: "form-field",
+                            label { class: "filter-label", "To" }
+                            input {
+                                r#type: "date",
+                                class: "input-std",
+                                value: custom_to(),
+                                oninput: move |e| custom_to.set(e.value()),
+                            }
+                        }
+                    }
+
+                    // Project filter — always visible
+                    if !groups.is_empty() {
+                        div { class: "form-field",
+                            label { class: "filter-label", "Project" }
+                            select {
+                                class: "input-std",
+                                onchange: move |e: Event<FormData>| {
+                                    selected_group.set(Uuid::parse_str(&e.value()).ok());
+                                },
+                                option { value: "", "All projects" }
+                                for g in groups.iter() {
+                                    option { value: "{g.id}", "{g.name}" }
+                                }
                             }
                         }
                     }
                 }
             }
 
-            // --- Spending over time ---
-            h2 { class: "view__section-title", "Monthly overview" }
+            // --- Summary cards ---
+            div { class: "analytics-summary",
+                div { class: "summary-card summary-card--expense",
+                    span { class: "summary-card__label", "Expenses" }
+                    span { class: "summary-card__value", "{fmt_amount(total_expenses)}" }
+                }
+                div { class: "summary-card summary-card--income",
+                    span { class: "summary-card__label", "Income" }
+                    span { class: "summary-card__value", "{fmt_amount(total_income)}" }
+                }
+                div {
+                    class: if net >= rust_decimal::Decimal::ZERO {
+                        "summary-card summary-card--net summary-card--positive"
+                    } else {
+                        "summary-card summary-card--net summary-card--negative"
+                    },
+                    span { class: "summary-card__label", "Net" }
+                    span { class: "summary-card__value", "{fmt_amount(net)}" }
+                }
+            }
+
+            // --- Overview section ---
+            // Single month: show one summary row (no redundant table, totals are
+            // already in the cards above). Multi-month: show month-by-month table.
             match over_time_res() {
                 None => rsx! { p { "Loading…" } },
                 Some(Err(e)) => rsx! { p { class: "text-error", "Error: {e}" } },
                 Some(Ok(rows)) if rows.is_empty() => rsx! {
-                    p { style: "color: var(--text-muted);", "No data for selected range." }
+                    p { style: "color: var(--text-muted); margin-bottom: 24px;",
+                        "No data for selected range."
+                    }
                 },
+                Some(Ok(rows)) if rows.len() == 1 => {
+                    // Single-month: just show a compact stat row under the cards
+                    // so the page doesn't feel empty, but avoid duplicating the numbers.
+                    rsx! {
+                        p { class: "analytics-range-label", "Showing: {overview_title}" }
+                    }
+                }
                 Some(Ok(rows)) => rsx! {
+                    h2 { class: "view__section-title", "Monthly breakdown" }
                     div {
                         class: "time-table",
                         div {
@@ -122,14 +320,40 @@ pub fn Analytics() -> Element {
                             span { "Period" }
                             span { class: "time-table__header-r", "Expenses" }
                             span { class: "time-table__header-r", "Income" }
+                            span { class: "time-table__header-r", "Net" }
                         }
                         for row in rows.iter() {
-                            div {
-                                key: "{row.period_label}",
-                                class: "time-table__row",
-                                span { class: "time-table__period", "{row.period_label}" }
-                                span { class: "time-table__expense", "{fmt_amount(row.expenses)}" }
-                                span { class: "time-table__income",  "{fmt_amount(row.income)}" }
+                            {
+                                let row_net = row.income - row.expenses;
+                                let net_class = if row_net >= rust_decimal::Decimal::ZERO {
+                                    "time-table__net time-table__net--pos"
+                                } else {
+                                    "time-table__net time-table__net--neg"
+                                };
+                                rsx! {
+                                    div {
+                                        key: "{row.period_label}",
+                                        class: "time-table__row",
+                                        span { class: "time-table__period", "{row.period_label}" }
+                                        span { class: "time-table__expense", "{fmt_amount(row.expenses)}" }
+                                        span { class: "time-table__income",  "{fmt_amount(row.income)}" }
+                                        span { class: "{net_class}", "{fmt_amount(row_net)}" }
+                                    }
+                                }
+                            }
+                        }
+                        div {
+                            class: "time-table__row time-table__row--total",
+                            span { class: "time-table__period", "Total" }
+                            span { class: "time-table__expense", "{fmt_amount(total_expenses)}" }
+                            span { class: "time-table__income", "{fmt_amount(total_income)}" }
+                            span {
+                                class: if net >= rust_decimal::Decimal::ZERO {
+                                    "time-table__net time-table__net--pos"
+                                } else {
+                                    "time-table__net time-table__net--neg"
+                                },
+                                "{fmt_amount(net)}"
                             }
                         }
                     }
@@ -171,8 +395,6 @@ pub fn Analytics() -> Element {
                                         div {
                                             key: "{gid}",
                                             class: "cat-bar",
-
-                                            // Top-level row
                                             div {
                                                 class: "cat-bar__label-row-wrap",
                                                 style: "display: flex; flex-direction: column; gap: 4px;",
@@ -199,9 +421,9 @@ pub fn Analytics() -> Element {
                                                             span { class: "{arrow_class}", "▶" }
                                                         }
                                                     }
+                                                    span { class: "cat-bar__pct", "{pct:.1}%" }
                                                     span { class: "cat-bar__total", "{fmt_amount(group.total)}" }
                                                 }
-                                                // Parent proportional bar
                                                 div {
                                                     class: "cat-bar__track",
                                                     div { class: "cat-bar__tint", style: "background: {group.color};" }
@@ -211,8 +433,6 @@ pub fn Analytics() -> Element {
                                                     }
                                                 }
                                             }
-
-                                            // Subcategory rows (when expanded)
                                             if expanded_cats().contains(&gid) && has_subs {
                                                 div {
                                                     class: "cat-bar__subs",
@@ -235,9 +455,9 @@ pub fn Analytics() -> Element {
                                                                             }
                                                                             "{sub.category_name}"
                                                                         }
+                                                                        span { class: "cat-bar__sub-pct", "{sub_pct:.1}%" }
                                                                         span { class: "cat-bar__sub-total", "{fmt_amount(sub.total)}" }
                                                                     }
-                                                                    // Subcategory proportional bar
                                                                     div {
                                                                         class: "cat-bar__track cat-bar__track--sm",
                                                                         div { class: "cat-bar__tint", style: "background: {sub.category_color};" }
