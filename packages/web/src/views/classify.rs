@@ -483,6 +483,7 @@ pub fn Classify() -> Element {
                                         TransactionQueueCard {
                                             transaction: tx,
                                             categories: categories.clone(),
+                                            suggested_category: state.suggested_category,
                                             on_classify: EventHandler::new(on_classify),
                                         }
                                     }

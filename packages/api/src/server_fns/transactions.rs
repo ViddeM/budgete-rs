@@ -6,7 +6,7 @@ use {
     crate::auth::session::current_household_id,
     crate::csv,
     crate::db::pool,
-    crate::db_rows::TransactionRow,
+    crate::db_rows::{CategoryRow, TransactionRow},
     base64::Engine as _,
     sha2::{Digest, Sha256},
     std::fmt::Write as _,
@@ -653,9 +653,43 @@ pub async fn get_queue_state() -> Result<QueueState, ServerFnError> {
     };
     let upcoming = items;
 
+    // Suggest the category most often assigned to previously classified
+    // transactions with the same description (case-insensitive match).
+    let suggested_category = if let Some(tx) = &next {
+        let row: Option<CategoryRow> = sqlx::query_as(
+            r#"
+            SELECT
+                c.id,
+                c.name,
+                c.color,
+                c.parent_id,
+                c.ignored
+            FROM transactions t
+            JOIN categories c ON c.id = t.category_id
+            WHERE t.household_id = $1
+                AND LOWER(t.description) = LOWER($2)
+                AND t.category_id IS NOT NULL
+                AND t.is_pending = false
+            GROUP BY c.id, c.name, c.color, c.parent_id, c.ignored
+            ORDER BY COUNT(*) DESC, c.name
+            LIMIT 1
+            "#,
+        )
+        .bind(household_id)
+        .bind(&tx.description)
+        .fetch_optional(db)
+        .await
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+        row.map(Into::into)
+    } else {
+        None
+    };
+
     Ok(QueueState {
         next,
         upcoming,
         remaining,
+        suggested_category,
     })
 }

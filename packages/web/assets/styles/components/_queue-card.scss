@@ -44,6 +44,23 @@
     letter-spacing: 0.05em;
   }
 
+  &__suggested {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    // Always rendered — reserve the button's height so the picker below
+    // does not shift when the suggestion is absent.
+    min-height: 34px;
+    margin-bottom: 28px;
+  }
+
+  &__no-suggestion {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin: 0;
+  }
+
   &__groups {
     display: flex;
     flex-direction: column;
@@ -135,6 +152,10 @@
     min-height: 44px;
     padding: 10px 20px;
     font-size: 0.95rem;
+  }
+
+  .queue-card__suggested {
+    min-height: 44px;
   }
 
   .queue-preview__date {
